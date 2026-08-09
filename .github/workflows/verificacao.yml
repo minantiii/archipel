@@ -1,0 +1,45 @@
+name: Verificação
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Push novo cancela a verificação do anterior no mesmo branch: sem isto, uma
+# sequência de commits enfileira execuções que já nasceram desatualizadas.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verificar:
+    # Windows, e não o Ubuntu que é mais barato em minutos: o app só roda no
+    # Windows, e o módulo mais arriscado (movimentação de pastas) vive
+    # justamente das diferenças de sistema de arquivos — renomear entre
+    # volumes, arquivo travado por outro programa, caminho com colchetes.
+    # Verificar isso no Linux daria um verde que não quer dizer nada.
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Acompanha o @types/node do projeto. O desenvolvimento local está
+          # numa versão mais nova; se um dia divergirem de verdade, é aqui.
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependências
+        # O binário do Electron são ~100 MB que esta verificação não usa: os
+        # testes não abrem janela nenhuma, e o `tsc` precisa só dos tipos, que
+        # vêm no pacote npm. Pular o download corta a maior parte do tempo.
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: 1
+        run: npm ci
+
+      - name: Conferir tipos
+        run: npm run typecheck
+
+      - name: Rodar os testes
+        run: npm test
