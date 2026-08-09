@@ -3,11 +3,13 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { caminhoMeta } from './estrutura'
+import { ehDiretorio, existe } from './io'
 import {
   contem,
   copiarVerificarERemover,
   desfazerUltima,
   moverPasta,
+  moverVarias,
   ultimaMovimentacao
 } from './move'
 
@@ -324,6 +326,108 @@ describe('desfazerUltima', () => {
 
     await expect(fs.access(join(fora, 'b'))).resolves.toBeUndefined()
     await expect(fs.access(join(raiz, 'a'))).resolves.toBeUndefined()
+  })
+})
+
+describe('moverVarias', () => {
+  it('move todas quando todas cabem', async () => {
+    for (const nome of ['erp', 'portal', 'scripts']) await criarProjeto(fora, nome)
+
+    const relatorio = await moverVarias(raiz, [
+      join(fora, 'erp'),
+      join(fora, 'portal'),
+      join(fora, 'scripts')
+    ])
+
+    expect(relatorio.movidas).toHaveLength(3)
+    expect(relatorio.falhas).toEqual([])
+    for (const nome of ['erp', 'portal', 'scripts']) {
+      expect(await ehDiretorio(join(raiz, nome))).toBe(true)
+      expect(await existe(join(fora, nome))).toBe(false)
+    }
+  })
+
+  it('segue depois de uma falha, em vez de abandonar o resto do lote', async () => {
+    await criarProjeto(fora, 'antes')
+    await criarProjeto(fora, 'depois')
+    // A do meio nem existe: falha na validação, sem tocar em disco.
+    const relatorio = await moverVarias(raiz, [
+      join(fora, 'antes'),
+      join(fora, 'fantasma'),
+      join(fora, 'depois')
+    ])
+
+    expect(relatorio.movidas).toHaveLength(2)
+    expect(relatorio.falhas).toHaveLength(1)
+    expect(relatorio.falhas[0].origem).toBe(join(fora, 'fantasma'))
+    // A que vinha *depois* da falha é a que prova que o lote não parou.
+    expect(await ehDiretorio(join(raiz, 'depois'))).toBe(true)
+  })
+
+  it('conta o motivo de cada falha', async () => {
+    await criarProjeto(fora, 'erp')
+    await fs.mkdir(join(raiz, 'erp'), { recursive: true }) // nome já ocupado
+
+    const relatorio = await moverVarias(raiz, [join(fora, 'erp')])
+
+    expect(relatorio.movidas).toEqual([])
+    expect(relatorio.falhas[0].motivo).toContain('Já existe')
+    // A origem continua onde estava: falha de validação não mexe em nada.
+    expect(await ehDiretorio(join(fora, 'erp'))).toBe(true)
+  })
+
+  it('a segunda de nome repetido encontra a primeira no lugar e é recusada', async () => {
+    const um = await criarProjeto(join(fora, 'cliente-a'), 'docs')
+    const dois = await criarProjeto(join(fora, 'cliente-b'), 'docs')
+
+    const relatorio = await moverVarias(raiz, [um, dois])
+
+    expect(relatorio.movidas).toHaveLength(1)
+    expect(relatorio.falhas).toHaveLength(1)
+    expect(relatorio.falhas[0].origem).toBe(dois)
+    expect(relatorio.falhas[0].motivo).toContain('Já existe')
+    // E a recusada continua inteira na origem, não pela metade.
+    expect(await existe(join(dois, 'README.md'))).toBe(true)
+  })
+
+  it('recusa a pasta que contém o próprio mapa sem derrubar as outras', async () => {
+    await criarProjeto(fora, 'erp')
+
+    const relatorio = await moverVarias(raiz, [base, join(fora, 'erp')])
+
+    expect(relatorio.falhas).toHaveLength(1)
+    expect(relatorio.falhas[0].motivo).toContain('mapa')
+    expect(relatorio.movidas).toHaveLength(1)
+  })
+
+  it('registra cada movimentação no log, uma por uma', async () => {
+    for (const nome of ['um', 'dois']) await criarProjeto(fora, nome)
+
+    await moverVarias(raiz, [join(fora, 'um'), join(fora, 'dois')])
+
+    // O desfazer continua sendo por pasta: a última do lote é a primeira a voltar.
+    const ultima = await ultimaMovimentacao(raiz)
+    expect(ultima?.para).toBe(join(raiz, 'dois'))
+    await desfazerUltima(raiz)
+    expect(await ehDiretorio(join(fora, 'dois'))).toBe(true)
+    expect(await ehDiretorio(join(raiz, 'um'))).toBe(true)
+  })
+
+  it('junta as ressalvas de sobra na origem', async () => {
+    await criarProjeto(fora, 'travada')
+    // Força o caminho de cópia entre volumes e trava a limpeza da origem.
+    falharEm('rename', join(fora, 'travada'), 'EXDEV')
+    falharEm('rm', join(fora, 'travada'), 'EBUSY')
+
+    const relatorio = await moverVarias(raiz, [join(fora, 'travada')])
+
+    expect(relatorio.movidas).toHaveLength(1)
+    expect(relatorio.avisos).toHaveLength(1)
+    expect(relatorio.avisos[0]).toContain('travada')
+  })
+
+  it('lote vazio não faz nada e não reclama', async () => {
+    expect(await moverVarias(raiz, [])).toEqual({ movidas: [], falhas: [], avisos: [] })
   })
 })
 

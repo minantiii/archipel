@@ -17,7 +17,13 @@ import { criarPasta } from './vault/criar'
 import { gravarConfig, lerConfig } from './vault/estrutura'
 import { ehDiretorio } from './vault/io'
 import { arquivarMeta, conectar, desconectar, marcarAcesso, salvarMeta } from './vault/metadados'
-import { desfazerUltima, moverPasta, ultimaMovimentacao } from './vault/move'
+import {
+  desfazerUltima,
+  moverPasta,
+  moverVarias,
+  ultimaMovimentacao
+} from './vault/move'
+import { confirmacaoDoLote, relatarLote } from './relato'
 import { renomearPasta } from './vault/renomear'
 import { carregarMapa } from './vault/scan'
 import { observar } from './vault/watcher'
@@ -311,26 +317,24 @@ export function registrarIpc(): void {
       const janela = janelaDe(evento)
 
       const escolha = await dialog.showOpenDialog({
-        title: 'Escolha a pasta que vai entrar no mapa',
-        buttonLabel: 'Selecionar pasta',
-        properties: ['openDirectory']
+        title: 'Escolha as pastas que vão entrar no mapa',
+        buttonLabel: 'Selecionar',
+        properties: ['openDirectory', 'multiSelections']
       })
 
-      const origem = escolha.filePaths[0]
-      if (escolha.canceled || !origem) return carregarMapa(raiz)
+      const origens = escolha.canceled ? [] : escolha.filePaths
+      if (origens.length === 0) return carregarMapa(raiz)
 
-      const destino = join(raiz, basename(origem))
-      const autorizado = await confirmar(janela, {
-        titulo: 'Mover pasta para o mapa',
-        mensagem: `Mover "${basename(origem)}" para o mapa?`,
-        detalhe: `A pasta sai de:\n${origem}\n\nE passa a viver em:\n${destino}\n\nO conteúdo é conferido antes da origem ser removida, e dá para desfazer depois.`,
-        botao: 'Mover'
-      })
+      const autorizado = await confirmar(janela, confirmacaoDoLote(raiz, origens))
       if (!autorizado) return carregarMapa(raiz)
 
-      const { aviso } = await enfileirar(() => moverPasta(raiz, origem, destino))
+      // O lote inteiro numa chamada só da fila: assim nada se intromete entre
+      // uma pasta e a seguinte, e o log sai na ordem em que o usuário escolheu.
+      const relatorio = await enfileirar(() => moverVarias(raiz, origens))
+
       const mapa = await carregarMapa(raiz)
-      return aviso ? new ComAviso(mapa, aviso) : mapa
+      const relato = relatarLote(relatorio)
+      return relato ? new ComAviso(mapa, relato) : mapa
     })
   )
 

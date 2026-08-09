@@ -190,6 +190,57 @@ export async function moverPasta(
   return executar(raiz, origem, destino, 'mover')
 }
 
+/** Uma pasta do lote que não entrou, e o motivo em linguagem de gente. */
+export interface FalhaDoLote {
+  origem: string
+  motivo: string
+}
+
+export interface RelatorioDoLote {
+  movidas: Movimentacao[]
+  falhas: FalhaDoLote[]
+  /** Ressalvas de pastas que chegaram inteiras mas deixaram sobra na origem. */
+  avisos: string[]
+}
+
+/**
+ * Move várias pastas para o mapa, uma de cada vez.
+ *
+ * **Uma falha não interrompe o lote.** Cada movimentação é validada e executada
+ * por conta própria, então um nome já ocupado ou uma pasta travada por outro
+ * programa não diz nada sobre a próxima da fila. Parar no meio deixaria o
+ * usuário no pior dos mundos: metade movida, e ele tendo que descobrir sozinho
+ * onde foi a fronteira. Seguir e relatar no fim é mais honesto e mais fácil de
+ * conferir.
+ *
+ * Não há transação: o que já foi movido continua movido. É o que o log permite
+ * desfazer, uma pasta por vez, na ordem inversa.
+ */
+export async function moverVarias(
+  raiz: string,
+  origens: readonly string[]
+): Promise<RelatorioDoLote> {
+  const relatorio: RelatorioDoLote = { movidas: [], falhas: [], avisos: [] }
+
+  for (const origem of origens) {
+    try {
+      // O destino é recalculado a cada volta de propósito: se duas pastas
+      // escolhidas tiverem o mesmo nome, a segunda encontra a primeira já lá e
+      // falha com "já existe", que é a verdade do disco naquele instante.
+      const { movimentacao, aviso } = await moverPasta(raiz, origem, join(raiz, basename(origem)))
+      relatorio.movidas.push(movimentacao)
+      if (aviso) relatorio.avisos.push(aviso)
+    } catch (erro) {
+      relatorio.falhas.push({
+        origem,
+        motivo: erro instanceof Error ? erro.message : String(erro)
+      })
+    }
+  }
+
+  return relatorio
+}
+
 /** Desfaz a última movimentação, devolvendo a pasta para onde ela estava. */
 export async function desfazerUltima(raiz: string): Promise<ResultadoMovimentacao> {
   const ultima = await ultimaMovimentacao(raiz)
