@@ -10,7 +10,7 @@ import { escreverAtomico } from './io'
  * comum, copiável e versionável, sem estado do app grudado nele.
  */
 
-interface ConfigApp {
+export interface ConfigApp {
   raiz: string | null
 }
 
@@ -22,13 +22,31 @@ function caminhoConfig(): string {
   return join(app.getPath('userData'), 'config.json')
 }
 
+/**
+ * Lê o conteúdo do `config.json`. Nunca lança: arquivo estragado vira o padrão.
+ *
+ * O BOM merece linha própria porque é invisível e derruba o `JSON.parse`. O app
+ * escreve este arquivo e nunca põe um, mas basta alguém abrir no Bloco de Notas
+ * e salvar como "UTF-8 com BOM" para o mapa sumir: sem raiz, a próxima abertura
+ * cai na tela de boas-vindas como se nenhum mapa jamais tivesse sido escolhido,
+ * e nada na tela explica o porquê. O `yaml` do `config.yaml` e o `gray-matter`
+ * dos `.md` já toleram BOM por conta própria; só o JSON não.
+ */
+export function interpretarConfig(bruto: string): ConfigApp {
+  try {
+    const dados = JSON.parse(bruto.replace(/^﻿/, '')) as Partial<ConfigApp>
+    return { raiz: typeof dados.raiz === 'string' ? dados.raiz : null }
+  } catch {
+    return { ...PADRAO }
+  }
+}
+
 async function ler(): Promise<ConfigApp> {
   if (cache) return cache
   try {
-    const bruto = await fs.readFile(caminhoConfig(), 'utf8')
-    const dados = JSON.parse(bruto) as Partial<ConfigApp>
-    cache = { raiz: typeof dados.raiz === 'string' ? dados.raiz : null }
+    cache = interpretarConfig(await fs.readFile(caminhoConfig(), 'utf8'))
   } catch {
+    // Arquivo ausente na primeira execução: o padrão já é "nenhum mapa".
     cache = { ...PADRAO }
   }
   return cache
