@@ -1,0 +1,19 @@
+appId: com.archipel.app
+productName: Archipel
+directories:
+  buildResources: build
+  output: dist
+files:
+  - out/**
+  - package.json
+win:
+  # O electron-builder acharia `build/icon.ico` sozinho, mas explícito é melhor:
+  # se alguém renomear o arquivo, a build falha dizendo o que faltou em vez de
+  # gerar um instalador com o ícone padrão do Electron sem avisar.
+  icon: build/icon.ico
+  target:
+    - nsis
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  shortcutName: Archipel

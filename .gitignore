@@ -1,0 +1,14 @@
+node_modules/
+out/
+dist/
+*.log
+.DS_Store
+tsconfig.node.tsbuildinfo
+tsconfig.web.tsbuildinfo
+
+# Rascunhos e imagens de referência soltas na raiz.
+WhatsApp Image*
+
+
+# Permissões e ajustes locais do Claude Code: são pessoais e da máquina.
+.claude/settings.local.json

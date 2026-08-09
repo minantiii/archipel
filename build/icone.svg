@@ -1,0 +1,43 @@
+<!--
+  Ícone do Archipel: a Córsega.
+
+  Três decisões que parecem estéticas e são de legibilidade:
+
+  1. Ilha clara sobre fundo roxo, e não o contrário. A barra de tarefas do
+     Windows é escura por padrão, e um ícone de fundo escuro some nela.
+  2. O dedo do Cap Corse, no topo, é o que impede a silhueta de ser lida como
+     uma forma genérica — foi a assimetria que faltou quando tentei a Sicília,
+     que sem ela virava uma seta de retroceder.
+  3. A ilha vai alargada em ~15%. A Córsega real é bem mais estreita, mas fiel
+     demais ela vira um risco vertical a 16px. As reentrâncias da costa oeste
+     também estão suavizadas pelo mesmo motivo.
+
+  Fonte de verdade: `icon.ico` e `icon.png` saem daqui por `gerar-icone.cjs`.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="fundo" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8f78ff"/>
+      <stop offset="1" stop-color="#5b3fe0"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="256" height="256" rx="56" fill="url(#fundo)"/>
+
+  <!-- Alarga em torno do centro sem mexer nos pontos da costa. -->
+  <g transform="translate(128 128) scale(1.15 1.02) translate(-128 -128)">
+    <path fill="#ffffff" d="M150 28
+      C 154 46 152 60 154 72
+      C 164 80 168 96 166 112
+      C 170 140 170 168 164 190
+      C 158 210 142 226 128 228
+      C 116 222 108 206 104 190
+      C 92 184 84 176 88 164
+      C 98 158 100 150 92 142
+      C 82 136 80 126 90 118
+      C 100 112 100 102 92 94
+      C 86 86 92 78 106 78
+      C 122 76 134 74 140 68
+      C 142 52 144 38 150 28 Z"/>
+  </g>
+</svg>

@@ -1,0 +1,1292 @@
+/* ============================================================================
+   Identidade visual
+   ----------------------------------------------------------------------------
+   A base é cinza neutro e o fundo é chapado — sem gradiente, sem textura. Já
+   tentamos tingir tudo de azul e ficou pior: o fundo é pano de fundo, quem tem
+   que chamar atenção é o mapa.
+
+   A cara própria vem dos detalhes, não da parede: o roxo ganhou um par ciano, e
+   os dois aparecem juntos só onde há pouca área — o fio de luz sob o topo, o
+   marcador da lista, o divisor, a barra de carregamento.
+
+   Movimento: tudo que aparece, aparece deslizando de algum lugar plausível, e
+   tudo que responde ao mouse responde com transformação, não só com cor. A
+   curva `--mola` desacelera forte no fim — é o que faz parecer fluido em vez
+   de mecânico.
+   ========================================================================== */
+
+:root {
+  /* Cinza neutro, como era no começo. A tinta azulada que passou por aqui não
+     ficou boa — o roxo e o ciano continuam, mas só nos detalhes, nunca no fundo. */
+  --fundo: #141416;
+  --fundo-painel: #1b1b1f;
+  --fundo-elevado: #232329;
+  --fundo-flutuante: #2a2a31;
+
+  --borda: #2e2e36;
+  --borda-forte: #3d3d47;
+
+  --texto: #e6e6ea;
+  --texto-suave: #9a9aa6;
+
+  --destaque: #7b61ff;
+  --destaque-suave: #a48dff;
+  /* A outra metade da identidade: o ciano só aparece em gradiente e em brilho,
+     nunca sozinho como cor de texto — sozinho ele briga com o roxo. */
+  --secundario: #22d3ee;
+  --perigo: #ff6b81;
+  --atencao: #ffb454;
+
+  --raio: 10px;
+  --raio-p: 7px;
+
+  --sombra-flutuante: 0 18px 44px rgba(0, 0, 0, 0.55);
+  --brilho-destaque: 0 0 0 1px rgba(123, 97, 255, 0.5), 0 6px 20px rgba(123, 97, 255, 0.28);
+
+  /* Desacelera forte no fim: é a curva que faz o painel "assentar". */
+  --mola: cubic-bezier(0.22, 1, 0.36, 1);
+  --suave: cubic-bezier(0.4, 0, 0.2, 1);
+  --rapido: 130ms;
+  --medio: 220ms;
+  --lento: 340ms;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--fundo);
+  color: var(--texto);
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Quem desligou animação no sistema não deve receber nenhuma. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* --- Vocabulário de movimento ---------------------------------------------- */
+
+@keyframes surgir {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes surgir-lateral {
+  from {
+    opacity: 0;
+    transform: translateX(26px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes descer {
+  from {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes brotar {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes varrer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(400%);
+  }
+}
+
+@keyframes pulsar {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* --- Barras de rolagem: finas, sem trilho, aparecendo só quando há o que rolar. */
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--borda);
+  border: 3px solid transparent;
+  background-clip: content-box;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--borda-forte);
+  background-clip: content-box;
+}
+
+/* --- Botões ---------------------------------------------------------------- */
+
+button {
+  font: inherit;
+  color: inherit;
+  background: var(--fundo-elevado);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-p);
+  padding: 8px 14px;
+  cursor: pointer;
+  transition:
+    background var(--rapido) var(--suave),
+    border-color var(--rapido) var(--suave),
+    color var(--rapido) var(--suave),
+    transform var(--rapido) var(--mola),
+    box-shadow var(--medio) var(--suave);
+}
+
+button:hover:not(:disabled) {
+  background: #2c2c34;
+  border-color: var(--borda-forte);
+  transform: translateY(-1px);
+}
+
+/* O clique afunda: o botão confirma o toque antes mesmo de o disco responder. */
+button:active:not(:disabled) {
+  transform: translateY(0) scale(0.975);
+  transition-duration: 60ms;
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--fundo-painel), 0 0 0 4px var(--destaque);
+}
+
+button.primario {
+  background: linear-gradient(135deg, var(--destaque), #9a5cff 55%, #6c7bff);
+  border-color: transparent;
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 4px 16px rgba(123, 97, 255, 0.28);
+}
+
+button.primario:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--destaque-suave), #a86bff 55%, #7d8bff);
+  border-color: transparent;
+  box-shadow: 0 8px 26px rgba(123, 97, 255, 0.42);
+}
+
+/* --- Estado inicial, antes de existir um mapa escolhido ------------------- */
+
+.boas-vindas {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  text-align: center;
+  padding: 32px;
+  background: var(--fundo);
+}
+
+/* Entrada escalonada: título, texto e botão chegam em sequência. */
+.boas-vindas > * {
+  animation: surgir var(--lento) var(--mola) both;
+}
+
+.boas-vindas > *:nth-child(2) {
+  animation-delay: 70ms;
+}
+
+.boas-vindas > *:nth-child(3) {
+  animation-delay: 140ms;
+}
+
+.boas-vindas h1 {
+  margin: 0;
+  font-size: 27px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  background: linear-gradient(100deg, #fff, #cfc4ff 45%, #9fe9f5);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.boas-vindas p {
+  margin: 0;
+  max-width: 46ch;
+  color: var(--texto-suave);
+  line-height: 1.6;
+}
+
+/* --- Layout ---------------------------------------------------------------- */
+
+/* Barra fina em cima, mapa ocupando todo o resto.
+   Flex e não grid de propósito: a faixa de erro é condicional, e com
+   `grid-template-rows` fixo o palco caía na linha errada e colapsava. */
+.app {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Esta barra É a barra de título da janela: o main esconde a nativa (que vinha
+   clara, destoando de tudo) e o Windows só redesenha os botões por cima, à
+   direita. Daí os três acréscimos: a altura casada com `ALTURA_TOPO` do main, a
+   folga à direita para não colocar nada embaixo dos botões, e o `drag`, que é o
+   que devolve o arrastar-para-mover que a barra nativa dava de graça. */
+.topo {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 16px;
+  min-height: 52px;
+  /* `titlebar-area-width` é a largura sobrando depois dos botões de janela. Sem
+     barra de título sobreposta a conta zera e resta o padding de sempre. */
+  padding-right: calc(100vw - env(titlebar-area-width, 100vw) + 16px);
+  background: linear-gradient(180deg, rgba(35, 35, 41, 0.92), rgba(27, 27, 31, 0.92));
+  backdrop-filter: blur(12px);
+  z-index: 12;
+  -webkit-app-region: drag;
+}
+
+/* Região de arraste engole clique: sem isto os botões da barra viravam alça de
+   mover a janela e paravam de responder. */
+.topo button,
+.topo input,
+.topo a {
+  -webkit-app-region: no-drag;
+}
+
+/* Fio de luz no lugar da borda reta: acende no meio e some nas pontas. */
+.topo::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(123, 97, 255, 0.45),
+    rgba(34, 211, 238, 0.3),
+    transparent
+  );
+}
+
+.topo-identidade {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.topo-identidade strong {
+  font-size: 15px;
+  letter-spacing: -0.01em;
+}
+
+.topo-resumo {
+  color: var(--texto-suave);
+  font-size: 12px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.topo-acoes {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.topo-acoes button {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+/* Botão só de ícone: quadrado, para não virar um retângulo torto ao lado dos
+   botões com texto. A altura casa com a deles (6px de padding + 13px de linha). */
+.topo-acoes button.botao-icone {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  color: var(--texto-suave);
+}
+
+.topo-acoes button.botao-icone:hover:not(:disabled) {
+  color: var(--texto);
+}
+
+/* Ligado: o ícone acende no roxo em vez de inverter o botão inteiro. Um bloco
+   sólido de 32px ao lado dos outros pesaria demais para um estado de modo. */
+.topo-acoes button.botao-icone.ativo {
+  background: rgba(123, 97, 255, 0.16);
+  border-color: var(--destaque);
+  color: var(--destaque-suave);
+  box-shadow: none;
+}
+
+.topo-acoes button.ativo {
+  background: linear-gradient(135deg, var(--destaque), #6c7bff);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 4px 18px rgba(123, 97, 255, 0.35);
+}
+
+/* Fita indeterminada durante leituras de disco. Fica sobre o fio do topo, então
+   o app mostra que está trabalhando sem empurrar nada do layout. */
+.barra-carregando {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.barra-carregando::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: 25%;
+  background: linear-gradient(90deg, transparent, var(--destaque), var(--secundario), transparent);
+  animation: varrer 1.1s var(--suave) infinite;
+}
+
+/* Corpo: lateral | mapa | detalhes. Só o mapa estica. */
+.corpo {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  position: relative; /* âncora do painel de detalhes sobreposto */
+}
+
+/* --- Lista lateral --------------------------------------------------------- */
+
+/* A largura vem inline, do estado do App; aqui só se garante que o flex não
+   estique nem encolha a lateral. A borda direita é do divisor. */
+.lateral {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--fundo-painel);
+}
+
+/* Alça de redimensionamento entre a lista e o mapa. Ela também faz o papel da
+   antiga borda da lateral, engrossando quando o mouse chega perto. */
+.divisor-lateral {
+  flex: 0 0 6px;
+  position: relative;
+  cursor: col-resize;
+  background: var(--fundo-painel);
+}
+
+.divisor-lateral::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 1px;
+  background: var(--borda);
+  transition:
+    width var(--rapido) var(--mola),
+    background var(--medio) var(--suave);
+}
+
+.divisor-lateral:hover::before,
+.divisor-lateral:focus-visible::before,
+.divisor-lateral.ativo::before {
+  width: 3px;
+  background: linear-gradient(180deg, var(--destaque), var(--secundario));
+}
+
+.divisor-lateral:focus-visible {
+  outline: none;
+}
+
+/* Enquanto arrasta, o ponteiro passa por cima do canvas: sem isto o cursor
+   voltaria a ser o do mapa e a lista viraria texto selecionado. */
+body.redimensionando {
+  cursor: col-resize;
+  user-select: none;
+}
+
+.botao-lateral {
+  flex: 0 0 auto;
+  padding: 3px 9px;
+  font-size: 13px;
+  line-height: 1.3;
+  color: var(--texto-suave);
+  background: transparent;
+  border-color: transparent;
+}
+
+.botao-lateral:hover:not(:disabled) {
+  color: var(--texto);
+  background: var(--fundo-elevado);
+  border-color: var(--borda);
+}
+
+.campo-busca {
+  margin: 10px;
+  padding: 7px 10px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--texto);
+  background: var(--fundo-elevado);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-p);
+  transition:
+    border-color var(--rapido) var(--suave),
+    box-shadow var(--medio) var(--suave),
+    background var(--rapido) var(--suave);
+}
+
+.campo-busca::placeholder {
+  color: var(--texto-suave);
+}
+
+.campo-busca:focus {
+  outline: none;
+  border-color: var(--destaque);
+  background: var(--fundo-flutuante);
+  box-shadow: 0 0 0 3px rgba(123, 97, 255, 0.16);
+}
+
+.tags-filtro {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 0 10px 10px;
+  border-bottom: 1px solid var(--borda);
+}
+
+.chip-tag {
+  padding: 3px 9px;
+  font-size: 11px;
+  border-radius: 999px;
+  background: transparent;
+  border: 1px solid var(--cor-tag, var(--borda));
+  color: var(--cor-tag, var(--texto));
+  transition:
+    background var(--rapido) var(--suave),
+    color var(--rapido) var(--suave),
+    transform var(--rapido) var(--mola),
+    box-shadow var(--medio) var(--suave);
+}
+
+.chip-tag:hover:not(:disabled),
+.chip-tag.ativo {
+  background: var(--cor-tag, var(--destaque));
+  border-color: var(--cor-tag, var(--destaque));
+  color: #14141a;
+  font-weight: 600;
+  transform: translateY(-1px);
+}
+
+/* A tag ligada fica acesa de verdade — o halo usa a própria cor dela. */
+.chip-tag.ativo {
+  box-shadow: 0 0 14px -2px var(--cor-tag, var(--destaque));
+}
+
+.lista-pastas {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.lista-vazia,
+.vazio {
+  color: var(--texto-suave);
+  font-size: 12px;
+  padding: 6px 4px;
+  margin: 0;
+}
+
+.item-pasta {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  margin-bottom: 2px;
+  font-size: 13px;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-radius: var(--raio-p);
+  user-select: none;
+  /* Ela é clicável o tempo todo; a mãozinha de "agarrar" só faz sentido
+     enquanto o item está realmente sendo arrastado. */
+  cursor: pointer;
+  transition:
+    background var(--rapido) var(--suave),
+    transform var(--medio) var(--mola),
+    opacity var(--rapido) var(--suave);
+}
+
+.item-pasta:hover {
+  background: var(--fundo-elevado);
+  transform: translateX(2px);
+}
+
+.item-pasta:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--destaque);
+}
+
+.item-pasta.arrastando {
+  opacity: 0.4;
+  cursor: grabbing;
+  transform: none;
+}
+
+/* Linha marcando onde o item vai cair ao soltar. */
+.item-pasta.alvo {
+  box-shadow: inset 0 2px 0 var(--destaque);
+}
+
+.aviso-ordem {
+  opacity: 0.75;
+}
+
+.item-pasta.ativo {
+  background: var(--fundo-elevado);
+}
+
+/* Marcador da seleção: cresce do centro em vez de simplesmente aparecer. */
+.item-pasta::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--destaque), var(--secundario));
+  transform: scaleY(0);
+  opacity: 0;
+  transition:
+    transform var(--medio) var(--mola),
+    opacity var(--rapido) var(--suave);
+}
+
+.item-pasta.ativo::before {
+  transform: scaleY(1);
+  opacity: 1;
+}
+
+.item-pasta.ausente .item-nome {
+  color: var(--texto-suave);
+}
+
+.item-nome {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ponto-cor {
+  flex: 0 0 8px;
+  height: 8px;
+  border-radius: 50%;
+  transition:
+    box-shadow var(--medio) var(--suave),
+    transform var(--medio) var(--mola);
+}
+
+/* O ponto acende na cor da própria pasta quando a linha está sob o cursor. */
+.item-pasta:hover .ponto-cor,
+.item-pasta.ativo .ponto-cor {
+  transform: scale(1.25);
+  box-shadow: 0 0 10px -1px currentColor;
+}
+
+.selo-ausente {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--texto-suave);
+  border: 1px solid var(--borda);
+  border-radius: 4px;
+  padding: 0 4px;
+}
+
+.lateral-rodape {
+  padding: 8px 12px;
+  font-size: 11px;
+  color: var(--texto-suave);
+  border-top: 1px solid var(--borda);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Painel de detalhes ---------------------------------------------------- */
+
+/* Sobreposto, e não um irmão no flex, de propósito: como coluna ele encolhia o
+   palco ao abrir, o canvas era remedido e a ilha fugia de baixo do cursor entre o
+   primeiro e o segundo clique. Flutuando por cima, a geometria do mapa não muda. */
+.detalhes {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 320px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 14px 20px;
+  gap: 4px;
+  border-left: 1px solid var(--borda);
+  background: linear-gradient(180deg, rgba(33, 33, 39, 0.97), rgba(24, 24, 28, 0.97));
+  backdrop-filter: blur(16px);
+  box-shadow: var(--sombra-flutuante);
+  animation: surgir-lateral var(--lento) var(--mola) both;
+}
+
+.detalhes-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.detalhes-topo h2 {
+  margin: 0;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: text;
+}
+
+.campo-renomear {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 4px 8px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--texto);
+  background: var(--fundo-elevado);
+  border: 1px solid var(--destaque);
+  border-radius: var(--raio-p);
+  box-shadow: 0 0 0 3px rgba(123, 97, 255, 0.16);
+}
+
+.campo-renomear:focus {
+  outline: none;
+}
+
+.fechar {
+  flex: 0 0 auto;
+  padding: 0 8px;
+  font-size: 18px;
+  line-height: 1.4;
+  background: transparent;
+  border: none;
+  color: var(--texto-suave);
+}
+
+.fechar:hover:not(:disabled) {
+  background: var(--fundo-elevado);
+  color: var(--texto);
+  transform: rotate(90deg);
+}
+
+.caminho {
+  margin: 0 0 6px;
+  font-family: Consolas, monospace;
+  font-size: 11px;
+  color: var(--texto-suave);
+  word-break: break-all;
+}
+
+.datas {
+  display: flex;
+  gap: 16px;
+  margin: 0 0 10px;
+  font-size: 11px;
+  color: var(--texto-suave);
+}
+
+.datas div {
+  display: flex;
+  gap: 5px;
+  min-width: 0;
+}
+
+.datas dt {
+  opacity: 0.65;
+}
+
+.datas dd {
+  margin: 0;
+  color: var(--texto);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.datas .sem-data {
+  color: var(--texto-suave);
+  font-style: italic;
+}
+
+.aviso-ausente {
+  margin: 0 0 8px;
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #ffd8a8;
+  background: rgba(255, 180, 84, 0.1);
+  border: 1px solid rgba(255, 180, 84, 0.3);
+  border-radius: var(--raio-p);
+}
+
+.detalhes section {
+  padding: 10px 0;
+  border-top: 1px solid var(--borda);
+  animation: surgir var(--medio) var(--mola) both;
+}
+
+/* As seções chegam em cascata, acompanhando o painel que desliza. */
+.detalhes section:nth-of-type(1) {
+  animation-delay: 60ms;
+}
+.detalhes section:nth-of-type(2) {
+  animation-delay: 100ms;
+}
+.detalhes section:nth-of-type(3) {
+  animation-delay: 140ms;
+}
+.detalhes section:nth-of-type(4) {
+  animation-delay: 180ms;
+}
+.detalhes section:nth-of-type(5) {
+  animation-delay: 220ms;
+}
+
+.detalhes h3 {
+  margin: 0 0 8px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--texto-suave);
+}
+
+.grade-acoes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.grade-acoes button {
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+.grade-acoes button.perigoso {
+  color: var(--perigo);
+  border-color: rgba(255, 107, 129, 0.35);
+}
+
+.grade-acoes button.perigoso:hover:not(:disabled) {
+  background: rgba(255, 107, 129, 0.14);
+  border-color: var(--perigo);
+}
+
+.tags-da-ilha {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 8px;
+}
+
+.chip-tag.no-painel {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: default;
+}
+
+.chip-tag.no-painel:hover {
+  background: transparent;
+  color: var(--cor-tag);
+  font-weight: normal;
+  transform: none;
+}
+
+.chip-tag.no-painel button {
+  padding: 0 2px;
+  font-size: 13px;
+  line-height: 1;
+  background: transparent;
+  border: none;
+  color: inherit;
+  opacity: 0.6;
+}
+
+.chip-tag.no-painel button:hover:not(:disabled) {
+  opacity: 1;
+  color: var(--perigo);
+  background: transparent;
+  transform: none;
+}
+
+.linha-tag,
+.linha-cor {
+  display: flex;
+  gap: 6px;
+}
+
+.linha-tag input[type='text'] {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 5px 8px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--texto);
+  background: var(--fundo-elevado);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-p);
+  transition:
+    border-color var(--rapido) var(--suave),
+    box-shadow var(--medio) var(--suave);
+}
+
+.linha-tag input[type='text']:focus {
+  outline: none;
+  border-color: var(--destaque);
+  box-shadow: 0 0 0 3px rgba(123, 97, 255, 0.16);
+}
+
+.linha-tag button,
+.linha-cor button {
+  padding: 5px 10px;
+  font-size: 12px;
+}
+
+.linha-cor input[type='color'] {
+  width: 40px;
+  height: 30px;
+  padding: 2px;
+  background: var(--fundo-elevado);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-p);
+  cursor: pointer;
+}
+
+.lista-conexoes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.lista-conexoes li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.link-vizinho {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 5px 6px;
+  font-size: 12px;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-radius: 5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.link-vizinho:hover:not(:disabled) {
+  background: var(--fundo-elevado);
+  color: var(--destaque-suave);
+  transform: translateX(2px);
+}
+
+.remover-conexao {
+  padding: 2px 7px;
+  font-size: 13px;
+  line-height: 1;
+  background: transparent;
+  border: none;
+  color: var(--texto-suave);
+}
+
+.remover-conexao:hover:not(:disabled) {
+  color: var(--perigo);
+  background: rgba(255, 107, 129, 0.12);
+  transform: none;
+}
+
+.secao-diario textarea {
+  /* `block` porque como inline-block o textarea se apoia na linha de base e
+     deixa uma folga fantasma embaixo, desencostando-o da dica que vem a seguir. */
+  display: block;
+  width: 100%;
+  /* Sem alça de redimensionar, a altura de partida precisa valer por si: cabem
+     seis linhas, e o que passar disso rola dentro da caixa. */
+  min-height: 140px;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--texto);
+  background: var(--fundo-elevado);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-p);
+  resize: none;
+  overflow-y: auto;
+  transition:
+    border-color var(--rapido) var(--suave),
+    box-shadow var(--medio) var(--suave);
+}
+
+.secao-diario textarea:focus {
+  outline: none;
+  border-color: var(--destaque);
+  box-shadow: 0 0 0 3px rgba(123, 97, 255, 0.16);
+}
+
+.dica-diario {
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: var(--texto-suave);
+  line-height: 1.5;
+}
+
+/* --- Faixas de estado ------------------------------------------------------ */
+
+.faixa-modo {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 16px;
+  font-size: 12.5px;
+  color: var(--destaque-suave);
+  background: linear-gradient(90deg, rgba(123, 97, 255, 0.16), rgba(34, 211, 238, 0.08));
+  border-bottom: 1px solid rgba(123, 97, 255, 0.3);
+  animation: descer var(--medio) var(--mola) both;
+}
+
+/* O modo conexão fica pulsando de leve: é um estado, e estado precisa lembrar
+   de si mesmo até você sair dele. */
+.faixa-modo > :first-child {
+  animation: pulsar 2.4s var(--suave) infinite;
+}
+
+.faixa-modo button {
+  padding: 3px 10px;
+  font-size: 12px;
+  background: transparent;
+}
+
+.faixa-erro {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 16px;
+  font-size: 13px;
+  background: rgba(255, 107, 129, 0.1);
+  border-bottom: 1px solid rgba(255, 107, 129, 0.28);
+  animation: descer var(--medio) var(--mola) both;
+}
+
+.faixa-erro button {
+  padding: 3px 10px;
+  font-size: 12px;
+  background: transparent;
+}
+
+/* Âmbar e não vermelho: a operação deu certo, só deixou algo para conferir.
+   Ocupa mais altura que a faixa de erro porque o texto traz caminhos. */
+.faixa-aviso {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 16px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #ffd8a8;
+  background: rgba(255, 180, 84, 0.1);
+  border-bottom: 1px solid rgba(255, 180, 84, 0.3);
+  animation: descer var(--medio) var(--mola) both;
+}
+
+.faixa-aviso button {
+  flex: 0 0 auto;
+  padding: 3px 10px;
+  font-size: 12px;
+  background: transparent;
+  border-color: rgba(255, 180, 84, 0.35);
+  color: inherit;
+}
+
+.erro,
+.faixa-erro {
+  color: var(--perigo);
+}
+
+/* --- Palco do mapa -------------------------------------------------------- */
+
+.palco {
+  flex: 1 1 auto;
+  min-height: 0; /* sem isso o canvas empurra o flex e estoura a janela */
+  position: relative;
+  overflow: hidden;
+  /* Cor chapada, sem gradiente nem textura: o palco é o pano de fundo do mapa,
+     e é o mapa que tem que chamar atenção. */
+  background: var(--fundo);
+}
+
+.palco canvas {
+  display: block;
+}
+
+/* O cursor precisa dizer a verdade.
+   A `force-graph` marca o canvas com `.clickable` (que é `cursor: pointer`)
+   inclusive quando o ponteiro está no vazio — basta existir um
+   `onBackgroundClick`, e existe. Estas regras retomam o controle: seta no vazio,
+   mãozinha só sobre uma ilha (a classe `sobre-ilha` vem do estado de hover do
+   componente) e "agarrando" só enquanto o botão está pressionado, que é quando
+   você de fato está movendo alguma coisa.
+
+   A especificidade tem de superar `.force-graph-container .clickable` (0,2,0),
+   daí o `canvas.clickable` explícito em vez de só `canvas`. */
+.palco canvas,
+.palco canvas.clickable,
+.palco canvas.grabbable {
+  cursor: default;
+}
+
+.palco.sobre-ilha canvas,
+.palco.sobre-ilha canvas.clickable {
+  cursor: pointer;
+}
+
+/* Mão fechada só enquanto algo é de fato movido. A classe vem do componente e
+   não de `:active` porque `:active` vale para qualquer botão — com ele, clicar
+   com o direito para abrir o menu já mostrava "agarrando" sem nada se mover.
+
+   Depois das regras de cima de propósito: empatam em especificidade e a última
+   declarada vence. */
+.palco.arrastando canvas,
+.palco.arrastando canvas.clickable,
+.palco.arrastando canvas.grabbable {
+  cursor: grabbing;
+}
+
+.palco-vazio {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--texto-suave);
+  line-height: 1.9;
+  animation: surgir var(--lento) var(--mola) both;
+}
+
+.palco-vazio code {
+  color: var(--texto);
+  font-size: 12px;
+}
+
+/* Resgate para quem afastou o zoom, arrastou o palco e se perdeu no vazio.
+
+   Fica no canto oposto à dica e discreto em repouso — é um controle que só
+   importa quando você precisa dele, e o palco pertence ao mapa. O hover
+   devolve a opacidade cheia em vez de crescer: um botão que salta sobre o
+   canvas puxa o olho o tempo todo. */
+.botao-enquadrar {
+  position: absolute;
+  right: 14px;
+  bottom: 12px;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  color: var(--texto-suave);
+  background: var(--fundo-flutuante);
+  border-color: var(--borda-forte);
+  border-radius: 50%;
+  opacity: 0.55;
+  backdrop-filter: blur(12px);
+  animation: surgir var(--lento) var(--mola) 400ms both;
+  transition:
+    opacity var(--medio) var(--suave),
+    color var(--rapido) var(--suave),
+    transform var(--rapido) var(--mola),
+    box-shadow var(--medio) var(--suave);
+}
+
+.botao-enquadrar:hover:not(:disabled) {
+  color: var(--texto);
+  background: var(--fundo-flutuante);
+  opacity: 1;
+  transform: none;
+  box-shadow: var(--sombra-flutuante);
+}
+
+.dica-mapa {
+  position: absolute;
+  left: 14px;
+  bottom: 12px;
+  /* Cede o canto direito ao botão de enquadrar: com o palco estreito o texto
+     passava por baixo dele em vez de quebrar a linha. */
+  max-width: calc(100% - 74px);
+  font-size: 11px;
+  color: var(--texto-suave);
+  opacity: 0.45;
+  user-select: none;
+  pointer-events: none;
+  animation: surgir var(--lento) var(--mola) 400ms both;
+  transition: opacity var(--medio) var(--suave);
+}
+
+/* Some quando o mouse está trabalhando no mapa e volta quando ele descansa. */
+.palco:hover .dica-mapa {
+  opacity: 0.2;
+}
+
+.dica-mapa kbd {
+  font-family: inherit;
+  border: 1px solid var(--borda);
+  border-radius: 3px;
+  padding: 0 4px;
+}
+
+/* --- Menu de contexto ------------------------------------------------------ */
+
+.menu-contexto {
+  position: fixed;
+  z-index: 20;
+  min-width: 208px;
+  padding: 4px;
+  background: var(--fundo-flutuante);
+  border: 1px solid var(--borda-forte);
+  border-radius: var(--raio);
+  box-shadow: var(--sombra-flutuante);
+  backdrop-filter: blur(12px);
+  transform-origin: top left;
+  animation: brotar var(--rapido) var(--mola) both;
+}
+
+.menu-titulo {
+  padding: 6px 10px 8px;
+  font-size: 11px;
+  color: var(--texto-suave);
+  border-bottom: 1px solid var(--borda);
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.menu-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 7px 10px;
+  font-size: 13px;
+  background: transparent;
+  border: none;
+  border-radius: 5px;
+}
+
+.menu-item:hover:not(:disabled) {
+  background: var(--destaque);
+  border-color: transparent;
+  color: #fff;
+  transform: translateX(2px);
+}
+
+.menu-item:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.menu-item.perigoso {
+  color: var(--perigo);
+}
+
+.menu-item.perigoso:hover:not(:disabled) {
+  background: var(--perigo);
+  color: #fff;
+}
