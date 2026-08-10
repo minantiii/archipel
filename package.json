@@ -4,6 +4,7 @@
   "description": "Um mapa navegável para pastas de projeto: cada pasta vira uma ilha, com tags e pontes entre elas",
   "main": "./out/main/index.js",
   "author": "Gabriel Minantti",
+  "license": "MIT",
   "private": true,
   "scripts": {
     "dev": "electron-vite dev",
