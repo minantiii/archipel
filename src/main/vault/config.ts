@@ -1,6 +1,7 @@
 import { app } from 'electron'
 import { promises as fs } from 'node:fs'
 import { join } from 'node:path'
+import type { Idioma } from '@shared/types'
 import { escreverAtomico } from './io'
 
 /**
@@ -12,9 +13,11 @@ import { escreverAtomico } from './io'
 
 export interface ConfigApp {
   raiz: string | null
+  /** `null` enquanto o usuário não escolheu: aí vale o idioma do sistema. */
+  idioma: Idioma | null
 }
 
-const PADRAO: ConfigApp = { raiz: null }
+const PADRAO: ConfigApp = { raiz: null, idioma: null }
 
 let cache: ConfigApp | null = null
 
@@ -35,7 +38,10 @@ function caminhoConfig(): string {
 export function interpretarConfig(bruto: string): ConfigApp {
   try {
     const dados = JSON.parse(bruto.replace(/^﻿/, '')) as Partial<ConfigApp>
-    return { raiz: typeof dados.raiz === 'string' ? dados.raiz : null }
+    return {
+      raiz: typeof dados.raiz === 'string' ? dados.raiz : null,
+      idioma: dados.idioma === 'pt' || dados.idioma === 'en' ? dados.idioma : null
+    }
   } catch {
     return { ...PADRAO }
   }
@@ -52,12 +58,31 @@ async function ler(): Promise<ConfigApp> {
   return cache
 }
 
+async function gravar(config: ConfigApp): Promise<void> {
+  cache = config
+  await escreverAtomico(caminhoConfig(), `${JSON.stringify(config, null, 2)}\n`)
+}
+
 export async function obterRaiz(): Promise<string | null> {
   return (await ler()).raiz
 }
 
 export async function definirRaiz(raiz: string | null): Promise<void> {
-  const config: ConfigApp = { raiz }
-  cache = config
-  await escreverAtomico(caminhoConfig(), `${JSON.stringify(config, null, 2)}\n`)
+  await gravar({ ...(await ler()), raiz })
+}
+
+/**
+ * Idioma escolhido, ou `null` enquanto o usuário nunca escolheu.
+ *
+ * `null` não é "português": é "ainda não sei", e quem resolve é o idioma do
+ * sistema. Guardar a escolha explícita separada do palpite importa porque um
+ * brasileiro com Windows em inglês pode querer o app em português, e essa
+ * escolha não pode ser sobrescrita pelo palpite na próxima abertura.
+ */
+export async function obterIdiomaEscolhido(): Promise<Idioma | null> {
+  return (await ler()).idioma
+}
+
+export async function definirIdioma(idioma: Idioma): Promise<void> {
+  await gravar({ ...(await ler()), idioma })
 }

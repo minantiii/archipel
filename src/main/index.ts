@@ -1,6 +1,7 @@
 import { app, BrowserWindow, shell } from 'electron'
 import { join } from 'node:path'
 import { cuidarDeAtualizacoes } from './atualizacao'
+import { carregarIdioma } from './textos'
 import { registrarIpc } from './ipc'
 import { pararDeObservar } from './vault/watcher'
 
@@ -95,7 +96,9 @@ if (!app.requestSingleInstanceLock()) {
     }
   })
 
-  void app.whenReady().then(() => {
+  void app.whenReady().then(async () => {
+    // Antes de qualquer janela: os diálogos do main leem daqui.
+    await carregarIdioma()
     // Precisa casar com o `appId` do electron-builder, senão o Windows agrupa a
     // janela e o atalho como se fossem dois programas diferentes na barra.
     app.setAppUserModelId('com.archipel.app')

@@ -6,13 +6,14 @@ import {
   type MetaPatch,
   type Movimentacao,
   type PastaCriada,
+  type Idioma,
   type Ilha,
   type Posicao,
   type Resultado,
   type Versoes
 } from '@shared/types'
 import { abrirNoVsCode, abrirTerminal } from './vault/actions'
-import { definirRaiz, obterRaiz } from './vault/config'
+import { definirIdioma, definirRaiz, obterRaiz } from './vault/config'
 import { criarPasta } from './vault/criar'
 import { gravarConfig, lerConfig } from './vault/estrutura'
 import { ehDiretorio } from './vault/io'
@@ -24,6 +25,7 @@ import {
   ultimaMovimentacao
 } from './vault/move'
 import { confirmacaoDoLote, relatarLote } from './relato'
+import { idiomaAtual, t, usarIdioma } from './textos'
 import { renomearPasta } from './vault/renomear'
 import { carregarMapa } from './vault/scan'
 import { observar } from './vault/watcher'
@@ -50,7 +52,7 @@ async function sincronizarObservador(raiz: string): Promise<void> {
 /** Recupera a raiz atual ou explode — usado nos handlers que não fazem sentido sem mapa. */
 async function raizObrigatoria(): Promise<string> {
   const raiz = await obterRaiz()
-  if (!raiz) throw new Error('Nenhum mapa aberto.')
+  if (!raiz) throw new Error(t().nenhumMapaAberto)
   return raiz
 }
 
@@ -60,14 +62,14 @@ function janelaDe(evento: Electron.IpcMainInvokeEvent): BrowserWindow | null {
 
 async function acharIlha(raiz: string, id: string): Promise<Ilha> {
   const ilha = (await carregarMapa(raiz)).ilhas.find((n) => n.id === id)
-  if (!ilha) throw new Error(`Pasta "${id}" não está no mapa.`)
+  if (!ilha) throw new Error(t().pastaForaDoMapa(id))
   return ilha
 }
 
 /** Caminho de uma ilha que existe de fato no disco — ilha ausente não tem o que abrir. */
 async function caminhoUsavel(id: string): Promise<string> {
   const ilha = await acharIlha(await raizObrigatoria(), id)
-  if (ilha.ausente) throw new Error(`A pasta "${id}" não existe mais no disco.`)
+  if (ilha.ausente) throw new Error(t().pastaSumiuDoDisco(id))
   return ilha.caminho
 }
 
@@ -112,7 +114,7 @@ async function confirmar(
     title: opcoes.titulo,
     message: opcoes.mensagem,
     detail: opcoes.detalhe,
-    buttons: [opcoes.botao, 'Cancelar'],
+    buttons: [opcoes.botao, t().cancelar],
     defaultId: opcoes.padraoCancelar ? 1 : 0,
     cancelId: 1,
     noLink: true
@@ -178,13 +180,22 @@ export function registrarIpc(): void {
     }
   })
 
+  ipcMain.handle(CANAIS.sistemaIdioma, (): Idioma => idiomaAtual())
+
+  ipcMain.handle(CANAIS.sistemaDefinirIdioma, async (_evento, idioma: Idioma): Promise<void> => {
+    // Guarda a escolha e passa a valer já: os diálogos do sistema saem no idioma
+    // novo a partir do próximo clique, sem reiniciar o app.
+    await definirIdioma(idioma)
+    usarIdioma(idioma)
+  })
+
   ipcMain.handle(CANAIS.mapaObterRaiz, (): Promise<string | null> => obterRaiz())
 
   ipcMain.handle(CANAIS.mapaEscolherRaiz, async (evento): Promise<string | null> => {
     const janela = BrowserWindow.fromWebContents(evento.sender)
     const opcoes = {
-      title: 'Escolha a pasta que será o mapa',
-      buttonLabel: 'Usar como mapa',
+      title: t().escolherRaizTitulo,
+      buttonLabel: t().escolherRaizBotao,
       properties: ['openDirectory', 'createDirectory'] as const
     }
 
@@ -267,7 +278,7 @@ export function registrarIpc(): void {
   ipcMain.handle(CANAIS.abrirExplorer, async (_evento, id: string): Promise<Resultado<null>> =>
     tentar(async () => {
       const ilha = await acharIlha(await raizObrigatoria(), id)
-      if (ilha.ausente) throw new Error(`A pasta "${id}" não existe mais no disco.`)
+      if (ilha.ausente) throw new Error(t().pastaSumiuDoDisco(id))
 
       const problema = await shell.openPath(ilha.caminho)
       if (problema) throw new Error(problema)
@@ -317,15 +328,15 @@ export function registrarIpc(): void {
       const janela = janelaDe(evento)
 
       const escolha = await dialog.showOpenDialog({
-        title: 'Escolha as pastas que vão entrar no mapa',
-        buttonLabel: 'Selecionar',
+        title: t().escolherPastasTitulo,
+        buttonLabel: t().escolherPastasBotao,
         properties: ['openDirectory', 'multiSelections']
       })
 
       const origens = escolha.canceled ? [] : escolha.filePaths
       if (origens.length === 0) return carregarMapa(raiz)
 
-      const autorizado = await confirmar(janela, confirmacaoDoLote(raiz, origens))
+      const autorizado = await confirmar(janela, confirmacaoDoLote(raiz, origens, idiomaAtual()))
       if (!autorizado) return carregarMapa(raiz)
 
       // O lote inteiro numa chamada só da fila: assim nada se intromete entre
@@ -333,7 +344,7 @@ export function registrarIpc(): void {
       const relatorio = await enfileirar(() => moverVarias(raiz, origens))
 
       const mapa = await carregarMapa(raiz)
-      const relato = relatarLote(relatorio)
+      const relato = relatarLote(relatorio, idiomaAtual())
       return relato ? new ComAviso(mapa, relato) : mapa
     })
   )
@@ -362,16 +373,13 @@ export function registrarIpc(): void {
       tentar(async () => {
         const raiz = await raizObrigatoria()
         const ilha = await acharIlha(raiz, id)
-        if (ilha.ausente) throw new Error(`A pasta "${id}" já não está no disco.`)
+        if (ilha.ausente) throw new Error(t().pastaJaNaoEstaNoDisco(id))
 
         const autorizado = await confirmar(janelaDe(evento), {
-          titulo: 'Apagar pasta',
-          mensagem: `Apagar "${id}" e todo o conteúdo dela?`,
-          detalhe:
-            `Vai para a Lixeira:\n${ilha.caminho}\n\n` +
-            'Nada é destruído de imediato — a pasta vai para a Lixeira do sistema e dá para ' +
-            'restaurar por lá. As tags e o diário ficam guardados em .organizador/removidos.',
-          botao: 'Apagar',
+          titulo: t().apagarTitulo,
+          mensagem: t().apagarPergunta(id),
+          detalhe: t().apagarDetalhe(ilha.caminho),
+          botao: t().apagarBotao,
           // Único lugar do app que remove uma pasta a pedido: o botão padrão é
           // "Cancelar" de propósito.
           padraoCancelar: true
@@ -396,11 +404,11 @@ export function registrarIpc(): void {
         const raiz = await raizObrigatoria()
         const janela = janelaDe(evento)
         const ilha = await acharIlha(raiz, id)
-        if (ilha.ausente) throw new Error(`A pasta "${id}" já não está no disco.`)
+        if (ilha.ausente) throw new Error(t().pastaJaNaoEstaNoDisco(id))
 
         const escolha = await dialog.showOpenDialog({
-          title: 'Para onde mover a pasta?',
-          buttonLabel: 'Mover para cá',
+          title: t().escolherDestinoTitulo,
+          buttonLabel: t().escolherDestinoBotao,
           properties: ['openDirectory', 'createDirectory']
         })
 
@@ -409,10 +417,10 @@ export function registrarIpc(): void {
 
         const destino = join(pastaDestino, basename(ilha.caminho))
         const autorizado = await confirmar(janela, {
-          titulo: 'Tirar pasta do mapa',
-          mensagem: `Tirar "${id}" do mapa?`,
-          detalhe: `A pasta sai de:\n${ilha.caminho}\n\nE vai para:\n${destino}\n\nAs tags e o diário vão para .organizador/removidos, caso você queira de volta.`,
-          botao: 'Mover'
+          titulo: t().tirarDoMapaTitulo,
+          mensagem: t().tirarDoMapaPergunta(id),
+          detalhe: t().tirarDoMapaDetalhe(ilha.caminho, destino),
+          botao: t().mover
         })
         if (!autorizado) return carregarMapa(raiz)
 
@@ -435,13 +443,13 @@ export function registrarIpc(): void {
     tentar(async () => {
       const raiz = await raizObrigatoria()
       const ultima = await ultimaMovimentacao(raiz)
-      if (!ultima) throw new Error('Não há movimentação recente para desfazer.')
+      if (!ultima) throw new Error(t().semMovimentacao)
 
       const autorizado = await confirmar(janelaDe(evento), {
-        titulo: 'Desfazer movimentação',
-        mensagem: `Devolver "${basename(ultima.para)}" para onde estava?`,
-        detalhe: `De volta de:\n${ultima.para}\n\nPara:\n${ultima.de}`,
-        botao: 'Desfazer'
+        titulo: t().desfazerTitulo,
+        mensagem: t().desfazerPergunta(basename(ultima.para)),
+        detalhe: t().desfazerDetalhe(ultima.para, ultima.de),
+        botao: t().desfazerBotao
       })
       if (!autorizado) return carregarMapa(raiz)
 

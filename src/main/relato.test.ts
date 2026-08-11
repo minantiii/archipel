@@ -94,3 +94,45 @@ describe('relatarLote', () => {
     expect(texto).not.toContain('ficou de fora')
   })
 })
+
+describe('em inglês', () => {
+  it('confirma uma pasta só', () => {
+    const t = confirmacaoDoLote(RAIZ, ['C:\\Desktop\\erp'], 'en')
+    expect(t.mensagem).toBe('Move "erp" to the map?')
+    expect(t.botao).toBe('Move')
+    expect(t.detalhe).toContain('C:\\Mapa\\erp')
+  })
+
+  it('confirma um lote, com a ressalva sobre falhas', () => {
+    const t = confirmacaoDoLote(RAIZ, ['C:\\a\\erp', 'C:\\b\\portal'], 'en')
+    expect(t.mensagem).toBe('Move 2 folders to the map?')
+    expect(t.botao).toBe('Move 2')
+    expect(t.detalhe).toContain('the rest continue')
+  })
+
+  it('concorda em número, igual ao português', () => {
+    const uma = relatarLote(
+      { movidas: [movida('a')], falhas: [{ origem: 'C:\\x\\b', motivo: 'locked' }], avisos: [] },
+      'en'
+    )
+    expect(uma).toContain('1 folder joined the map, 1 stayed out')
+    expect(uma).toContain('still where they were')
+
+    const varias = relatarLote(
+      {
+        movidas: [movida('a'), movida('b')],
+        falhas: [
+          { origem: 'C:\\x\\c', motivo: 'locked' },
+          { origem: 'C:\\x\\d', motivo: 'locked' }
+        ],
+        avisos: []
+      },
+      'en'
+    )
+    expect(varias).toContain('2 folders joined the map, 2 stayed out')
+  })
+
+  it('cala a boca quando tudo entrou, igual ao português', () => {
+    expect(relatarLote({ ...vazio, movidas: [movida('erp')] }, 'en')).toBeNull()
+  })
+})

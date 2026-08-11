@@ -145,8 +145,20 @@ export interface OrganizadorApi {
 }
 
 /** Nomes dos canais de IPC. Usados pelo preload e pelo main — nunca pelo renderer. */
+/**
+ * Idiomas da interface.
+ *
+ * Só a interface: as chaves dos arquivos (`criadoEm`, `pasta`, `ordem`) e os
+ * nomes de `.organizador` seguem em português nos dois. São o formato dos dados,
+ * não texto de tela — traduzi-los quebraria todo mapa já existente e criaria
+ * dois dialetos do mesmo formato, com um mapa impossível de abrir no outro idioma.
+ */
+export type Idioma = 'pt' | 'en'
+
 export const CANAIS = {
   sistemaVersoes: 'sistema:versoes',
+  sistemaIdioma: 'sistema:idioma',
+  sistemaDefinirIdioma: 'sistema:definir-idioma',
 
   mapaObterRaiz: 'mapa:obter-raiz',
   mapaEscolherRaiz: 'mapa:escolher-raiz',

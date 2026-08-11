@@ -1,5 +1,6 @@
 import { execFile, spawn } from 'node:child_process'
 import { promisify } from 'node:util'
+import { t } from '../textos'
 
 /**
  * Abertura de uma pasta nas ferramentas do sistema.
@@ -86,7 +87,7 @@ async function comandoDeTerminal(): Promise<Comando> {
 
 function exigirWindows(ferramenta: string): void {
   if (!ehWindows()) {
-    throw new Error(`Abrir ${ferramenta} só está implementado no Windows por enquanto.`)
+    throw new Error(t().soNoWindows(ferramenta))
   }
 }
 
@@ -97,7 +98,7 @@ export async function abrirNoVsCode(caminho: string): Promise<void> {
   }
 
   if (!(await existeNoPath('code'))) {
-    throw new Error('Não encontrei o VS Code. Confira se o comando "code" está no PATH.')
+    throw new Error(t().semVsCode)
   }
 
   // O VS Code é um app gráfico: abre a própria janela, não precisa de console.
@@ -105,6 +106,6 @@ export async function abrirNoVsCode(caminho: string): Promise<void> {
 }
 
 export async function abrirTerminal(caminho: string): Promise<void> {
-  exigirWindows('o terminal')
+  exigirWindows(t().oTerminal)
   await abrirEmNovoConsole(await comandoDeTerminal(), caminho)
 }
