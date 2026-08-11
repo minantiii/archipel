@@ -44,9 +44,12 @@ export default function App(): React.JSX.Element {
     movimentacao,
     busca,
     filtroTag,
+    idioma,
+    t,
     modoConexao,
     conectandoDe,
     iniciar,
+    carregarIdioma,
     escolherMapa,
     recarregar,
     selecionar,
@@ -63,6 +66,7 @@ export default function App(): React.JSX.Element {
     desfazerMovimentacao,
     setBusca,
     setFiltroTag,
+    trocarIdioma,
     alternarModoConexao,
     clicarEmModoConexao,
     desconectar,
@@ -78,8 +82,9 @@ export default function App(): React.JSX.Element {
   )
 
   useEffect(() => {
+    void carregarIdioma()
     void iniciar()
-  }, [iniciar])
+  }, [carregarIdioma, iniciar])
 
   useEffect(() => {
     localStorage.setItem(CHAVE_LARGURA, String(larguraLateral))
@@ -117,7 +122,7 @@ export default function App(): React.JSX.Element {
   useEffect(() => {
     return window.api.atualizacao.aoFicarPronta((versao) => {
       useStore.setState({
-        aviso: `Archipel ${versao} foi baixado e será instalado quando você fechar o app.`
+        aviso: useStore.getState().t.atualizacaoPronta(versao)
       })
     })
   }, [])
@@ -183,13 +188,10 @@ export default function App(): React.JSX.Element {
   if (!raiz) {
     return (
       <div className="boas-vindas">
-        <h1>Archipel</h1>
-        <p>
-          Suas pastas de projeto viram um mapa navegável. Escolha a pasta que vai abrigar o mapa e
-          tudo que você adicionar passa a viver lá dentro.
-        </p>
+        <h1>{t.bemVindoTitulo}</h1>
+        <p>{t.bemVindoTexto}</p>
         <button className="primario" onClick={() => void escolherMapa()} disabled={carregando}>
-          Escolher pasta do mapa
+          {t.escolherMapa}
         </button>
         {erro && <p className="erro">{erro}</p>}
       </div>
@@ -201,23 +203,23 @@ export default function App(): React.JSX.Element {
 
   /** Menu de uma ilha: tudo que se faz com aquela pasta. */
   const itensDaIlha = (id: string): ItemMenu[] => [
-    { rotulo: 'Abrir no Explorer', acao: () => void abrirNoExplorer(id) },
-    { rotulo: 'Abrir no VS Code', acao: () => void executarAcao('vscode', id) },
-    { rotulo: 'Abrir terminal aqui', acao: () => void executarAcao('terminal', id) },
-    { rotulo: 'Copiar caminho', acao: () => void executarAcao('copiarCaminho', id) },
+    { rotulo: t.abrirNoExplorer, acao: () => void abrirNoExplorer(id) },
+    { rotulo: t.abrirNoVsCode, acao: () => void executarAcao('vscode', id) },
+    { rotulo: t.abrirTerminalAqui, acao: () => void executarAcao('terminal', id) },
+    { rotulo: t.copiarCaminho, acao: () => void executarAcao('copiarCaminho', id) },
     {
-      rotulo: 'Soltar posição fixada',
+      rotulo: t.soltarPosicao,
       acao: () => void fixar(id, null),
       desabilitado: !ilhaDoMenu?.pos
     },
     {
-      rotulo: 'Tirar do mapa…',
+      rotulo: t.tirarDoMapa,
       acao: () => void removerDoMapa(id),
       perigoso: true,
       desabilitado: ilhaDoMenu?.ausente
     },
     {
-      rotulo: 'Apagar pasta…',
+      rotulo: t.apagarPasta,
       acao: () => void apagarPasta(id),
       perigoso: true,
       desabilitado: ilhaDoMenu?.ausente
@@ -226,12 +228,12 @@ export default function App(): React.JSX.Element {
 
   /** Menu do vazio: clicar com o direito no nada agora oferece criar algo ali. */
   const itensDoFundo = (pos?: { x: number; y: number }): ItemMenu[] => [
-    { rotulo: 'Criar pasta aqui', acao: () => void criarPasta(pos ?? null) },
-    { rotulo: 'Adicionar pasta existente…', acao: () => void adicionarPasta() },
+    { rotulo: t.criarPastaAqui, acao: () => void criarPasta(pos ?? null) },
+    { rotulo: t.adicionarExistente, acao: () => void adicionarPasta() },
     // Terminal em `.organizador`: é a única forma de chegar num prompt que
     // enxerga o mapa inteiro. Aberto dentro de um projeto, o terminal não vê os
     // `.md` dos projetos irmãos — nem quem for editá-los ali por conta própria.
-    { rotulo: 'Abrir terminal no mapa', acao: () => void abrirTerminalNoMapa() }
+    { rotulo: t.abrirTerminalNoMapa, acao: () => void abrirTerminalNoMapa() }
   ]
 
   const itensMenu: ItemMenu[] = !menu
@@ -255,7 +257,7 @@ export default function App(): React.JSX.Element {
           </button>
           <strong>{raiz.split(/[\\/]/).filter(Boolean).pop()}</strong>
           <span className="topo-resumo">
-            {mapa?.ilhas.length ?? 0} ilhas · {mapa?.pontes.length ?? 0} pontes
+            {t.contagem(mapa?.ilhas.length ?? 0, mapa?.pontes.length ?? 0)}
           </span>
         </div>
 
@@ -265,8 +267,8 @@ export default function App(): React.JSX.Element {
           <button
             className={modoConexao ? 'botao-icone ativo' : 'botao-icone'}
             onClick={alternarModoConexao}
-            title={modoConexao ? 'Modo conexão ligado (L)' : 'Modo conexão (L)'}
-            aria-label="Modo conexão"
+            title={t.modoConexao}
+            aria-label={t.modoConexao}
             aria-pressed={modoConexao}
           >
             <IconeConexao />
@@ -275,14 +277,24 @@ export default function App(): React.JSX.Element {
             className="botao-icone"
             onClick={() => void recarregar()}
             disabled={carregando}
-            title="Recarregar"
-            aria-label="Recarregar"
+            title={t.recarregar}
+            aria-label={t.recarregar}
           >
             <IconeRecarregar />
           </button>
-          <button onClick={() => void escolherMapa()}>Trocar de mapa</button>
+          {/* Alterna direto em vez de abrir um seletor: são dois idiomas, e um
+              menu para escolher entre dois custa mais clique do que o botão que
+              já mostra o outro. */}
+          <button
+            className="botao-icone botao-idioma"
+            onClick={() => void trocarIdioma()}
+            title={idioma === 'pt' ? 'Switch to English' : 'Mudar para português'}
+          >
+            {idioma === 'pt' ? 'EN' : 'PT'}
+          </button>
+          <button onClick={() => void escolherMapa()}>{t.trocarDeMapa}</button>
           <button className="primario" onClick={() => void adicionarPasta()} disabled={carregando}>
-            Adicionar pasta
+            {t.adicionarPasta}
           </button>
         </div>
 
@@ -302,7 +314,7 @@ export default function App(): React.JSX.Element {
       {aviso && (
         <div className="faixa-aviso">
           {aviso}
-          <button onClick={() => useStore.setState({ aviso: null })}>entendi</button>
+          <button onClick={() => useStore.setState({ aviso: null })}>{t.entendi}</button>
         </div>
       )}
 

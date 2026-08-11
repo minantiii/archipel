@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { Mapa, Ilha } from '@shared/types'
 import { emPalavras, porExtenso } from '../lib/datas'
+import { useStore } from '../state/store'
 import type { AcaoDeAbrir } from '../state/store'
 
 /**
@@ -45,6 +46,7 @@ export default function DetailsPanel({
   batizar,
   onBatizada
 }: Props): React.JSX.Element {
+  const t = useStore((e) => e.t)
   const [diario, setDiario] = useState(() => paraEditor(ilha.diario))
   const [novaTag, setNovaTag] = useState('')
   const [renomeando, setRenomeando] = useState<string | null>(null)
@@ -79,7 +81,7 @@ export default function DetailsPanel({
       <header className="detalhes-topo">
         {renomeando === null ? (
           <h2
-            title="Clique duas vezes para renomear"
+            title={t.renomearDica}
             onDoubleClick={() => setRenomeando(ilha.id)}
           >
             {ilha.id}
@@ -104,7 +106,7 @@ export default function DetailsPanel({
             }}
           />
         )}
-        <button className="fechar" onClick={onFechar} title="Fechar">
+        <button className="fechar" onClick={onFechar} title={t.fechar}>
           ×
         </button>
       </header>
@@ -117,51 +119,48 @@ export default function DetailsPanel({
           e promovê-las competiria com as ações, que é o que se vem fazer aqui. */}
       <dl className="datas">
         <div>
-          <dt>Aberta</dt>
+          <dt>{t.aberta}</dt>
           <dd title={porExtenso(ilha.ultimoAcessoEm) ?? undefined}>
             {emPalavras(ilha.ultimoAcessoEm) ?? (
               // Nunca aberta *pelo app* — não é o mesmo que nunca usada, e dizer
               // "nunca" mentiria sobre tudo que aconteceu antes do mapa existir.
-              <span className="sem-data">nenhuma vez por aqui</span>
+              <span className="sem-data">{t.nuncaAberta}</span>
             )}
           </dd>
         </div>
         <div>
-          <dt>No mapa</dt>
+          <dt>{t.noMapa}</dt>
           <dd title={porExtenso(ilha.criadoEm) ?? undefined}>
-            {emPalavras(ilha.criadoEm) ?? <span className="sem-data">desde sempre</span>}
+            {emPalavras(ilha.criadoEm) ?? <span className="sem-data">{t.desdeSempre}</span>}
           </dd>
         </div>
       </dl>
 
       {ilha.ausente && (
-        <p className="aviso-ausente">
-          Esta pasta não existe mais no disco. Os metadados continuam guardados — se ela voltar para
-          o mapa com o mesmo nome, tudo se religa sozinho.
-        </p>
+        <p className="aviso-ausente">{t.pastaAusente}</p>
       )}
 
       <section>
-        <h3>Ações</h3>
+        <h3>{t.acoes}</h3>
         <div className="grade-acoes">
           <button onClick={() => onAcao('explorer')} disabled={ilha.ausente}>
-            Explorer
+            {t.explorer}
           </button>
           <button onClick={() => onAcao('vscode')} disabled={ilha.ausente}>
-            VS Code
+            {t.vsCode}
           </button>
           <button onClick={() => onAcao('terminal')} disabled={ilha.ausente}>
-            Terminal
+            {t.terminal}
           </button>
-          <button onClick={() => onAcao('copiarCaminho')}>Copiar caminho</button>
+          <button onClick={() => onAcao('copiarCaminho')}>{t.copiarCaminho}</button>
           <button className="perigoso" onClick={onRemover} disabled={ilha.ausente}>
-            Tirar do mapa…
+            {t.tirarDoMapa}
           </button>
         </div>
       </section>
 
       <section>
-        <h3>Tags</h3>
+        <h3>{t.tags}</h3>
         <div className="tags-da-ilha">
           {ilha.tags.map((tag) => (
             <span
@@ -176,20 +175,20 @@ export default function DetailsPanel({
               {tag}
               <button
                 onClick={() => onSalvar({ tags: ilha.tags.filter((t) => t !== tag) })}
-                title={`Remover a tag ${tag}`}
+                title={t.removerTag(tag)}
               >
                 ×
               </button>
             </span>
           ))}
-          {ilha.tags.length === 0 && <span className="vazio">sem tags</span>}
+          {ilha.tags.length === 0 && <span className="vazio">{t.semTags}</span>}
         </div>
 
         <div className="linha-tag">
           <input
             type="text"
             value={novaTag}
-            placeholder="nova tag"
+            placeholder={t.novaTag}
             list="tags-existentes"
             onChange={(e) => setNovaTag(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && adicionarTag()}
@@ -199,27 +198,27 @@ export default function DetailsPanel({
               <option key={t.nome} value={t.nome} />
             ))}
           </datalist>
-          <button onClick={adicionarTag}>Adicionar</button>
+          <button onClick={adicionarTag}>{t.adicionar}</button>
         </div>
       </section>
 
       <section>
-        <h3>Cor</h3>
+        <h3>{t.cor}</h3>
         <div className="linha-cor">
           <input
             type="color"
             value={ilha.cor ?? '#7c5cff'}
             onChange={(e) => onSalvar({ cor: e.target.value })}
-            title="Sobrescrever a cor da tag"
+            title={t.sobrescreverCor}
           />
           <button onClick={() => onSalvar({ cor: null })} disabled={!ilha.cor}>
-            Usar a cor da tag
+            {t.usarCorDaTag}
           </button>
         </div>
       </section>
 
       <section>
-        <h3>Pontes ({vizinhos.length})</h3>
+        <h3>{t.pontes(vizinhos.length)}</h3>
         {vizinhos.length === 0 && (
           <p className="vazio">
             Nenhuma. Ligue o <strong>modo conexão</strong> e clique de uma pasta a outra.
@@ -234,7 +233,7 @@ export default function DetailsPanel({
               <button
                 className="remover-conexao"
                 onClick={() => onDesconectar(vizinho)}
-                title="Derrubar esta ponte"
+                title={t.derrubarPonte}
               >
                 ×
               </button>
@@ -244,10 +243,10 @@ export default function DetailsPanel({
       </section>
 
       <section className="secao-diario">
-        <h3>Diário</h3>
+        <h3>{t.diario}</h3>
         <textarea
           value={diario}
-          placeholder="Para que serve esta pasta? Use [[NomeDaPasta]] para ligar com outra."
+          placeholder={t.diarioVazio}
           onChange={(e) => setDiario(e.target.value)}
           // Compara contra o corpo já normalizado, senão a linha em branco
           // removida contaria como edição e todo blur gravaria em disco.

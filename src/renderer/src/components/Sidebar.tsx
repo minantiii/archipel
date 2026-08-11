@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { Mapa, Ilha } from '@shared/types'
+import { useStore } from '../state/store'
 
 /** Tipo de dado do arrastar, usado para o mapa saber que a origem foi a lista. */
 export const TIPO_ARRASTE = 'application/x-organizador-pasta'
@@ -57,6 +58,7 @@ export default function Sidebar({
   onAbrir,
   onReordenar
 }: Props): React.JSX.Element {
+  const t = useStore((e) => e.t)
   const [arrastando, setArrastando] = useState<string | null>(null)
   const [alvo, setAlvo] = useState<string | null>(null)
 
@@ -103,7 +105,7 @@ export default function Sidebar({
         className="campo-busca"
         type="search"
         value={busca}
-        placeholder="Buscar pasta ou diário…"
+        placeholder={t.buscar}
         onChange={(evento) => onBusca(evento.target.value)}
       />
 
@@ -115,7 +117,7 @@ export default function Sidebar({
               className={filtroTag === tag.nome ? 'chip-tag ativo' : 'chip-tag'}
               style={{ '--cor-tag': tag.cor } as React.CSSProperties}
               onClick={() => onFiltroTag(tag.nome)}
-              title={`${contagemPorTag.get(tag.nome) ?? 0} pasta(s)`}
+              title={t.pastasComATag(contagemPorTag.get(tag.nome) ?? 0)}
             >
               {tag.nome}
             </button>
@@ -124,7 +126,7 @@ export default function Sidebar({
       )}
 
       <div className="lista-pastas" onDragLeave={() => setAlvo(null)}>
-        {visiveis.length === 0 && <p className="lista-vazia">Nada encontrado.</p>}
+        {visiveis.length === 0 && <p className="lista-vazia">{t.nadaEncontrado}</p>}
 
         {visiveis.map((ilha) => (
           <div
@@ -141,8 +143,8 @@ export default function Sidebar({
             draggable
             title={
               ilha.ausente
-                ? 'Esta pasta não existe mais no disco'
-                : `${ilha.caminho}\n\nDuplo clique abre no Explorer.\nArraste para o mapa para posicionar, ou sobre outro item para reordenar.`
+                ? t.pastaSumiu
+                : t.dicaDoItem(ilha.caminho)
             }
             onClick={() => onSelecionar(ilha.id)}
             onDoubleClick={() => onAbrir(ilha.id)}
@@ -187,14 +189,14 @@ export default function Sidebar({
               }}
             />
             <span className="item-nome">{ilha.id}</span>
-            {ilha.ausente && <span className="selo-ausente">ausente</span>}
+            {ilha.ausente && <span className="selo-ausente">{t.seloAusente}</span>}
           </div>
         ))}
       </div>
 
       <footer className="lateral-rodape">
-        {visiveis.length} de {mapa.ilhas.length} ilhas
-        {!reordenacaoAtiva && <span className="aviso-ordem"> · limpe o filtro para reordenar</span>}
+        {t.contagemLista(visiveis.length, mapa.ilhas.length)}
+        {!reordenacaoAtiva && <span className="aviso-ordem">{t.limpeParaReordenar}</span>}
       </footer>
     </aside>
   )

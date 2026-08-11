@@ -90,10 +90,23 @@ export interface Versoes {
   chrome: string
 }
 
+/**
+ * Idiomas da interface.
+ *
+ * Só a interface: as chaves dos arquivos (`criadoEm`, `pasta`, `ordem`) e os
+ * nomes de `.organizador` seguem em português nos dois. São o formato dos dados,
+ * não texto de tela — traduzi-los quebraria todo mapa já existente e criaria
+ * dois dialetos do mesmo formato, com um mapa impossível de abrir no outro idioma.
+ */
+export type Idioma = 'pt' | 'en'
+
 /** API exposta em `window.api` pelo preload. */
 export interface OrganizadorApi {
   sistema: {
     versoes(): Promise<Versoes>
+    /** Idioma em vigor: o escolhido, ou o do sistema enquanto ninguém escolheu. */
+    idioma(): Promise<Idioma>
+    definirIdioma(idioma: Idioma): Promise<void>
   }
 
   mapa: {
@@ -145,16 +158,6 @@ export interface OrganizadorApi {
 }
 
 /** Nomes dos canais de IPC. Usados pelo preload e pelo main — nunca pelo renderer. */
-/**
- * Idiomas da interface.
- *
- * Só a interface: as chaves dos arquivos (`criadoEm`, `pasta`, `ordem`) e os
- * nomes de `.organizador` seguem em português nos dois. São o formato dos dados,
- * não texto de tela — traduzi-los quebraria todo mapa já existente e criaria
- * dois dialetos do mesmo formato, com um mapa impossível de abrir no outro idioma.
- */
-export type Idioma = 'pt' | 'en'
-
 export const CANAIS = {
   sistemaVersoes: 'sistema:versoes',
   sistemaIdioma: 'sistema:idioma',

@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import type { Mapa, MetaPatch, Movimentacao, Posicao, Resultado } from '@shared/types'
+import type { Idioma, Mapa, MetaPatch, Movimentacao, Posicao, Resultado } from '@shared/types'
+import { textosDe, type Textos } from '../lib/textos'
 
 /**
  * Estado do renderer.
@@ -21,6 +22,10 @@ interface Estado {
 
   busca: string
   filtroTag: string | null
+
+  idioma: Idioma
+  /** Os textos do idioma em vigor, prontos para usar na tela. */
+  t: Textos
   /** Quando ligado, clicar de uma ilha a outro cria a conexão em vez de selecionar. */
   modoConexao: boolean
   /** Primeira ponta escolhida enquanto o modo conexão está ligado. */
@@ -53,6 +58,8 @@ interface Estado {
 
   setBusca: (texto: string) => void
   setFiltroTag: (tag: string | null) => void
+  carregarIdioma: () => Promise<void>
+  trocarIdioma: () => Promise<void>
   alternarModoConexao: () => void
   /** Trata o clique numa ilha quando o modo conexão está ligado. */
   clicarEmModoConexao: (id: string) => Promise<void>
@@ -79,6 +86,9 @@ export const useStore = create<Estado>((set, get) => ({
   movimentacao: null,
   busca: '',
   filtroTag: null,
+  // Palpite até o main dizer o que ficou gravado, logo na abertura.
+  idioma: 'pt',
+  t: textosDe('pt'),
   modoConexao: false,
   conectandoDe: null,
   batizando: null,
@@ -212,6 +222,23 @@ export const useStore = create<Estado>((set, get) => ({
   setBusca: (texto) => set({ busca: texto }),
 
   setFiltroTag: (tag) => set({ filtroTag: get().filtroTag === tag ? null : tag }),
+
+  carregarIdioma: async () => {
+    const idioma = await window.api.sistema.idioma()
+    set({ idioma, t: textosDe(idioma) })
+  },
+
+  /**
+   * Alterna entre os dois idiomas.
+   *
+   * Alterna em vez de abrir um seletor porque são dois: um menu para escolher
+   * entre duas opções custa mais cliques do que o botão que já mostra a outra.
+   */
+  trocarIdioma: async () => {
+    const idioma = get().idioma === 'pt' ? 'en' : 'pt'
+    await window.api.sistema.definirIdioma(idioma)
+    set({ idioma, t: textosDe(idioma) })
+  },
 
   alternarModoConexao: () =>
     set({ modoConexao: !get().modoConexao, conectandoDe: null, selecionado: null }),

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import ForceGraph2D, { type ForceGraphMethods } from 'react-force-graph-2d'
 import type { Mapa, Ilha } from '@shared/types'
 import { useTamanho } from '../hooks/useTamanho'
+import { useStore } from '../state/store'
 import { posicaoLivre, raioDaIlha } from '../lib/colisao'
 import { diasSemUso, frescor } from '../lib/datas'
 import { IconeEnquadrar } from './Icones'
@@ -165,6 +166,7 @@ export default function Palco({
   onMenu,
   onMenuDoFundo
 }: Props): React.JSX.Element {
+  const t = useStore((e) => e.t)
   const [container, tamanho] = useTamanho<HTMLDivElement>()
   const metodos = useRef<ForceGraphMethods<IlhaVisual, PonteVisual> | undefined>(undefined)
   const ilhasPorId = useRef(new Map<string, IlhaVisual>())
@@ -792,16 +794,15 @@ export default function Palco({
           type="button"
           className="botao-enquadrar"
           onClick={() => enquadrar()}
-          title="Centralizar a visão nas ilhas (Home)"
-          aria-label="Centralizar a visão nas ilhas"
+          title={t.enquadrar}
+          aria-label={t.enquadrarRotulo}
         >
           <IconeEnquadrar tamanho={17} />
         </button>
       )}
 
       <div className="dica-mapa">
-        arraste uma ilha para fixá-la · <kbd>Alt</kbd> + clique solta · duplo clique abre a pasta ·
-        arraste da lista para posicionar
+        {t.dicaDoMapa} <kbd>Alt</kbd> {t.dicaDoMapaAlt}
       </div>
     </div>
   )
