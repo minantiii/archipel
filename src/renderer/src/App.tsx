@@ -96,7 +96,7 @@ export default function App(): React.JSX.Element {
     document.title = nome ? `${nome} — Archipel` : 'Archipel'
   }, [raiz])
 
-  // O main avisa quando o disco muda por fora — Claude Code editando os `.md`,
+  // O main avisa quando o disco muda por fora — um editor mexendo nos `.md`,
   // ou você mexendo nas pastas pelo Explorer. O mapa se atualiza sozinho.
   useEffect(() => {
     if (!raiz) return
@@ -104,6 +104,23 @@ export default function App(): React.JSX.Element {
       void useStore.getState().recarregar()
     })
   }, [raiz])
+
+  /*
+   * Versão nova baixada e esperando.
+   *
+   * Fora do `raiz` de propósito: a atualização vale mesmo para quem ainda está na
+   * tela de boas-vindas, sem mapa escolhido.
+   *
+   * Reusa a faixa de aviso em vez de inventar uma notificação: é o mesmo tom de
+   * "algo que você precisa saber, sem urgência", e ela já sabe se fechar sozinha.
+   */
+  useEffect(() => {
+    return window.api.atualizacao.aoFicarPronta((versao) => {
+      useStore.setState({
+        aviso: `Archipel ${versao} foi baixado e será instalado quando você fechar o app.`
+      })
+    })
+  }, [])
 
   // Atalhos globais: Ctrl+B esconde a lateral, Ctrl+Z desfaz a última
   // movimentação, L liga e desliga o modo conexão.

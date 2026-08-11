@@ -34,6 +34,14 @@ const api: OrganizadorApi = {
     }
   },
 
+  atualizacao: {
+    aoFicarPronta: (callback: (versao: string) => void): (() => void) => {
+      const ouvinte = (_evento: unknown, versao: string): void => callback(versao)
+      ipcRenderer.on(CANAIS.atualizacaoPronta, ouvinte)
+      return () => ipcRenderer.removeListener(CANAIS.atualizacaoPronta, ouvinte)
+    }
+  },
+
   pasta: {
     salvarMeta: (id: string, patch: MetaPatch): Promise<Mapa> =>
       ipcRenderer.invoke(CANAIS.pastaSalvarMeta, id, patch),

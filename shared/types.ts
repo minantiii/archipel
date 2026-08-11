@@ -107,6 +107,14 @@ export interface OrganizadorApi {
     aoMudar(callback: () => void): () => void
   }
 
+  atualizacao: {
+    /**
+     * Avisa quando uma versão nova já foi baixada e está esperando o app fechar.
+     * Devolve o unsubscribe.
+     */
+    aoFicarPronta(callback: (versao: string) => void): () => void
+  }
+
   pasta: {
     salvarMeta(id: string, patch: MetaPatch): Promise<Mapa>
     /** Grava a ordem manual da lista lateral. */
@@ -144,6 +152,8 @@ export const CANAIS = {
   mapaEscolherRaiz: 'mapa:escolher-raiz',
   mapaCarregar: 'mapa:carregar',
   mapaMudou: 'mapa:mudou',
+
+  atualizacaoPronta: 'atualizacao:pronta',
 
   pastaSalvarMeta: 'pasta:salvar-meta',
   pastaReordenar: 'pasta:reordenar',

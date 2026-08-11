@@ -6,11 +6,31 @@ directories:
 files:
   - out/**
   - package.json
+# De onde o app procura atualização. O repositório é público, então o updater
+# baixa sem token nenhum embutido no instalador.
+publish:
+  provider: github
+  owner: minantiii
+  repo: archipel
+
+# Sem espaço no nome, e isso não é preferência estética.
+#
+# O `latest.yml` — o manifesto que o updater lê — grava a URL do instalador com
+# hífens no lugar dos espaços. Já o GitHub, ao receber o anexo, troca espaço por
+# ponto. Com "Archipel Setup 0.1.0.exe" os dois nomes divergiriam e a atualização
+# quebraria com um 404 que ninguém vê: o app simplesmente nunca atualizaria.
+# Nomeando sem espaço, arquivo, manifesto e anexo falam do mesmo nome.
+artifactName: ${productName}-Setup-${version}.${ext}
+
 win:
   # O electron-builder acharia `build/icon.ico` sozinho, mas explícito é melhor:
   # se alguém renomear o arquivo, a build falha dizendo o que faltou em vez de
   # gerar um instalador com o ícone padrão do Electron sem avisar.
   icon: build/icon.ico
+  # O app não é assinado. Com a verificação ligada (o padrão), o updater recusa a
+  # versão nova por não conseguir confirmar a assinatura, e a atualização morre
+  # calada. Quando houver certificado, esta linha é a primeira a sair.
+  verifyUpdateCodeSignature: false
   target:
     - nsis
 nsis:

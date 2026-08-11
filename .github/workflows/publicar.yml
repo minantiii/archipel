@@ -68,6 +68,10 @@ jobs:
         with:
           subject-path: dist/*.exe
 
+      # `latest.yml` é o manifesto que o app instalado consulta para saber que
+      # existe versão nova; o `.blockmap` é o que permite baixar só a diferença
+      # em vez dos 95 MB inteiros. Sem os dois anexados, a atualização automática
+      # simplesmente nunca acontece — e sem erro visível para o usuário.
       - name: Criar a release
         shell: bash
         env:
@@ -76,4 +80,4 @@ jobs:
           gh release create "$GITHUB_REF_NAME" \
             --title "Archipel $GITHUB_REF_NAME" \
             --generate-notes \
-            dist/*.exe dist/SHA256SUMS.txt
+            dist/*.exe dist/*.blockmap dist/latest.yml dist/SHA256SUMS.txt

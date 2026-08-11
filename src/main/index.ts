@@ -1,5 +1,6 @@
 import { app, BrowserWindow, shell } from 'electron'
 import { join } from 'node:path'
+import { cuidarDeAtualizacoes } from './atualizacao'
 import { registrarIpc } from './ipc'
 import { pararDeObservar } from './vault/watcher'
 
@@ -100,6 +101,7 @@ if (!app.requestSingleInstanceLock()) {
     app.setAppUserModelId('com.archipel.app')
     registrarIpc()
     criarJanela()
+    cuidarDeAtualizacoes()
 
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) criarJanela()
