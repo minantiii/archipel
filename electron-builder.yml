@@ -37,3 +37,11 @@ nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
   shortcutName: Archipel
+  # Sem estes, o assistente sai com o ícone e as artes padrão do NSIS, com cara
+  # de instalador de 2005. São gerados por `gerar-imagens-instalador.ps1`.
+  installerIcon: build/icon.ico
+  uninstallerIcon: build/icon.ico
+  installerHeaderIcon: build/icon.ico
+  installerHeader: build/instalador-cabecalho.bmp
+  installerSidebar: build/instalador-lateral.bmp
+  uninstallerSidebar: build/instalador-lateral.bmp
