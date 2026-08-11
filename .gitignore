@@ -12,3 +12,6 @@ WhatsApp Image*
 
 # Permissões e ajustes locais do Claude Code: são pessoais e da máquina.
 .claude/settings.local.json
+
+# Imagens de referência soltas na raiz.
+exemplo.jpeg
