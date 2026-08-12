@@ -13,14 +13,21 @@ publish:
   owner: minantiii
   repo: archipel
 
-# Sem espaço no nome, e isso não é preferência estética.
+# Sem espaço e sem versão no nome, e nenhum dos dois é preferência estética.
 #
-# O `latest.yml` — o manifesto que o updater lê — grava a URL do instalador com
-# hífens no lugar dos espaços. Já o GitHub, ao receber o anexo, troca espaço por
-# ponto. Com "Archipel Setup 0.1.0.exe" os dois nomes divergiriam e a atualização
-# quebraria com um 404 que ninguém vê: o app simplesmente nunca atualizaria.
-# Nomeando sem espaço, arquivo, manifesto e anexo falam do mesmo nome.
-artifactName: ${productName}-Setup-${version}.${ext}
+# Sem espaço: o `latest.yml` — o manifesto que o updater lê — grava a URL do
+# instalador com hífens no lugar dos espaços, enquanto o GitHub, ao receber o
+# anexo, troca espaço por ponto. Com "Archipel Setup 0.1.0.exe" os dois nomes
+# divergiriam e a atualização quebraria com um 404 que ninguém vê: o app
+# simplesmente nunca atualizaria.
+#
+# Sem versão: é o que faz `releases/latest/download/Archipel-Setup.exe` existir —
+# a URL que o GitHub resolve para a última release, e que o botão do site usa
+# para baixar direto, sem passar pela página. Ela precisa do nome exato do
+# arquivo, então um nome com a versão dentro pararia de existir a cada
+# publicação, levando o botão junto. A versão continua visível na release, nas
+# propriedades do `.exe` e dentro do app.
+artifactName: ${productName}-Setup.${ext}
 
 win:
   # O electron-builder acharia `build/icon.ico` sozinho, mas explícito é melhor:
