@@ -3,7 +3,7 @@
 
   Três decisões que parecem estéticas e são de legibilidade:
 
-  1. Ilha clara sobre fundo roxo, e não o contrário. A barra de tarefas do
+  1. Ilha clara sobre fundo azul, e não o contrário. A barra de tarefas do
      Windows é escura por padrão, e um ícone de fundo escuro some nela.
   2. O dedo do Cap Corse, no topo, é o que impede a silhueta de ser lida como
      uma forma genérica — foi a assimetria que faltou quando tentei a Sicília,
@@ -17,8 +17,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
   <defs>
     <linearGradient id="fundo" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#8f78ff"/>
-      <stop offset="1" stop-color="#5b3fe0"/>
+      <stop offset="0" stop-color="#6ca2e5"/>
+      <stop offset="1" stop-color="#1d5aa5"/>
     </linearGradient>
   </defs>
 

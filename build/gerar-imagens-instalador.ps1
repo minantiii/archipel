@@ -46,8 +46,8 @@ $bmp, $g = Novo-Desenho $LATERAL.largura $LATERAL.altura
 $area = New-Object System.Drawing.Rectangle(0, 0, $LATERAL.largura, $LATERAL.altura)
 $gradiente = New-Object System.Drawing.Drawing2D.LinearGradientBrush(
     $area,
-    [System.Drawing.ColorTranslator]::FromHtml('#8f78ff'),
-    [System.Drawing.ColorTranslator]::FromHtml('#42299f'),
+    [System.Drawing.ColorTranslator]::FromHtml('#6ca2e5'),
+    [System.Drawing.ColorTranslator]::FromHtml('#154075'),
     [System.Drawing.Drawing2D.LinearGradientMode]::ForwardDiagonal)
 $g.FillRectangle($gradiente, $area)
 
