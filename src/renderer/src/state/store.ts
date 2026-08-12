@@ -58,8 +58,8 @@ interface Estado {
 
   setBusca: (texto: string) => void
   setFiltroTag: (tag: string | null) => void
+  /** Pega do main o idioma da sessão — o que foi escolhido no instalador. */
   carregarIdioma: () => Promise<void>
-  trocarIdioma: () => Promise<void>
   alternarModoConexao: () => void
   /** Trata o clique numa ilha quando o modo conexão está ligado. */
   clicarEmModoConexao: (id: string) => Promise<void>
@@ -225,18 +225,6 @@ export const useStore = create<Estado>((set, get) => ({
 
   carregarIdioma: async () => {
     const idioma = await window.api.sistema.idioma()
-    set({ idioma, t: textosDe(idioma) })
-  },
-
-  /**
-   * Alterna entre os dois idiomas.
-   *
-   * Alterna em vez de abrir um seletor porque são dois: um menu para escolher
-   * entre duas opções custa mais cliques do que o botão que já mostra a outra.
-   */
-  trocarIdioma: async () => {
-    const idioma = get().idioma === 'pt' ? 'en' : 'pt'
-    await window.api.sistema.definirIdioma(idioma)
     set({ idioma, t: textosDe(idioma) })
   },
 

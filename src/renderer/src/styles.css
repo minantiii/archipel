@@ -1296,12 +1296,3 @@ body.redimensionando {
   background: var(--perigo);
   color: #fff;
 }
-
-/* Alternador de idioma: duas letras, discreto entre os ícones do topo. */
-.botao-idioma {
-  width: auto;
-  padding: 0 9px;
-  font-size: 11.5px;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-}

@@ -13,7 +13,7 @@ import {
   type Versoes
 } from '@shared/types'
 import { abrirNoVsCode, abrirTerminal } from './vault/actions'
-import { definirIdioma, definirRaiz, obterRaiz } from './vault/config'
+import { definirRaiz, obterRaiz } from './vault/config'
 import { criarPasta } from './vault/criar'
 import { gravarConfig, lerConfig } from './vault/estrutura'
 import { ehDiretorio } from './vault/io'
@@ -25,7 +25,7 @@ import {
   ultimaMovimentacao
 } from './vault/move'
 import { confirmacaoDoLote, relatarLote } from './relato'
-import { idiomaAtual, t, usarIdioma } from './textos'
+import { idiomaAtual, t } from './textos'
 import { renomearPasta } from './vault/renomear'
 import { carregarMapa } from './vault/scan'
 import { observar } from './vault/watcher'
@@ -181,13 +181,6 @@ export function registrarIpc(): void {
   })
 
   ipcMain.handle(CANAIS.sistemaIdioma, (): Idioma => idiomaAtual())
-
-  ipcMain.handle(CANAIS.sistemaDefinirIdioma, async (_evento, idioma: Idioma): Promise<void> => {
-    // Guarda a escolha e passa a valer já: os diálogos do sistema saem no idioma
-    // novo a partir do próximo clique, sem reiniciar o app.
-    await definirIdioma(idioma)
-    usarIdioma(idioma)
-  })
 
   ipcMain.handle(CANAIS.mapaObterRaiz, (): Promise<string | null> => obterRaiz())
 

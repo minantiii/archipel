@@ -22,9 +22,7 @@ import type {
 const api: OrganizadorApi = {
   sistema: {
     versoes: (): Promise<Versoes> => ipcRenderer.invoke(CANAIS.sistemaVersoes),
-    idioma: (): Promise<Idioma> => ipcRenderer.invoke(CANAIS.sistemaIdioma),
-    definirIdioma: (idioma: Idioma): Promise<void> =>
-      ipcRenderer.invoke(CANAIS.sistemaDefinirIdioma, idioma)
+    idioma: (): Promise<Idioma> => ipcRenderer.invoke(CANAIS.sistemaIdioma)
   },
 
   mapa: {

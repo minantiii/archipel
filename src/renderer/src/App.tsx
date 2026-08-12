@@ -44,7 +44,6 @@ export default function App(): React.JSX.Element {
     movimentacao,
     busca,
     filtroTag,
-    idioma,
     t,
     modoConexao,
     conectandoDe,
@@ -66,7 +65,6 @@ export default function App(): React.JSX.Element {
     desfazerMovimentacao,
     setBusca,
     setFiltroTag,
-    trocarIdioma,
     alternarModoConexao,
     clicarEmModoConexao,
     desconectar,
@@ -281,16 +279,6 @@ export default function App(): React.JSX.Element {
             aria-label={t.recarregar}
           >
             <IconeRecarregar />
-          </button>
-          {/* Alterna direto em vez de abrir um seletor: são dois idiomas, e um
-              menu para escolher entre dois custa mais clique do que o botão que
-              já mostra o outro. */}
-          <button
-            className="botao-icone botao-idioma"
-            onClick={() => void trocarIdioma()}
-            title={idioma === 'pt' ? 'Switch to English' : 'Mudar para português'}
-          >
-            {idioma === 'pt' ? 'EN' : 'PT'}
           </button>
           <button onClick={() => void escolherMapa()}>{t.trocarDeMapa}</button>
           <button className="primario" onClick={() => void adicionarPasta()} disabled={carregando}>
