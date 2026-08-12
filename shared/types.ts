@@ -104,9 +104,8 @@ export type Idioma = 'pt' | 'en'
 export interface OrganizadorApi {
   sistema: {
     versoes(): Promise<Versoes>
-    /** Idioma em vigor: o escolhido, ou o do sistema enquanto ninguém escolheu. */
+    /** Idioma da sessão: o escolhido no instalador, ou o do sistema. Só leitura. */
     idioma(): Promise<Idioma>
-    definirIdioma(idioma: Idioma): Promise<void>
   }
 
   mapa: {
@@ -161,7 +160,6 @@ export interface OrganizadorApi {
 export const CANAIS = {
   sistemaVersoes: 'sistema:versoes',
   sistemaIdioma: 'sistema:idioma',
-  sistemaDefinirIdioma: 'sistema:definir-idioma',
 
   mapaObterRaiz: 'mapa:obter-raiz',
   mapaEscolherRaiz: 'mapa:escolher-raiz',

@@ -37,6 +37,20 @@ nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
   shortcutName: Archipel
+  # O idioma do app é escolhido aqui, na primeira tela do assistente, e não por
+  # um botão na interface: é decisão de uma vez só, e o topo do app estava
+  # gastando um lugar de destaque com ela.
+  #
+  # A ordem importa: a primeira é a que aparece marcada quando o Windows não
+  # está em nenhuma das duas.
+  multiLanguageInstaller: true
+  displayLanguageSelector: true
+  installerLanguages:
+    - pt_BR
+    - en_US
+  # Leva a escolha do assistente para onde o app lê na abertura. Sem isto, o
+  # idioma escolhido aqui morre junto com o instalador.
+  include: build/instalador.nsh
   # Sem estes, o assistente sai com o ícone e as artes padrão do NSIS, com cara
   # de instalador de 2005. São gerados por `gerar-imagens-instalador.ps1`.
   installerIcon: build/icon.ico

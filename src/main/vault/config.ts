@@ -72,17 +72,13 @@ export async function definirRaiz(raiz: string | null): Promise<void> {
 }
 
 /**
- * Idioma escolhido, ou `null` enquanto o usuário nunca escolheu.
+ * Idioma escolhido no botão que existia no topo do app, ou `null`.
  *
- * `null` não é "português": é "ainda não sei", e quem resolve é o idioma do
- * sistema. Guardar a escolha explícita separada do palpite importa porque um
- * brasileiro com Windows em inglês pode querer o app em português, e essa
- * escolha não pode ser sobrescrita pelo palpite na próxima abertura.
+ * Ninguém escreve mais aqui: quem escolhe o idioma é o instalador. O campo
+ * continua sendo lido para não virar português na cara de quem já tinha
+ * escolhido inglês no botão e recebe esta versão pela atualização automática —
+ * a escolha dessa pessoa está só neste arquivo.
  */
 export async function obterIdiomaEscolhido(): Promise<Idioma | null> {
   return (await ler()).idioma
-}
-
-export async function definirIdioma(idioma: Idioma): Promise<void> {
-  await gravar({ ...(await ler()), idioma })
 }

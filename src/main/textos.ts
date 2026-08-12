@@ -1,4 +1,6 @@
 import { app } from 'electron'
+import { promises as fs } from 'node:fs'
+import { join } from 'node:path'
 import type { Idioma } from '@shared/types'
 import { obterIdiomaEscolhido } from './vault/config'
 
@@ -111,20 +113,50 @@ export function idiomaDoSistema(): Idioma {
   return app.getLocale().toLowerCase().startsWith('pt') ? 'pt' : 'en'
 }
 
+/**
+ * Lê o que o instalador gravou. Qualquer outra coisa vira `null`.
+ *
+ * O arquivo é escrito por `build/instalador.nsh` e nunca pelo app, então
+ * conteúdo estranho significa alguém mexendo com o Bloco de Notas — daí o
+ * `trim` e o BOM, que são invisíveis e sozinhos derrubariam a comparação.
+ */
+export function interpretarIdiomaGravado(bruto: string): Idioma | null {
+  const limpo = bruto.replace(/^﻿/, '').trim().toLowerCase()
+  return limpo === 'pt' || limpo === 'en' ? limpo : null
+}
+
+/**
+ * A escolha feita na primeira tela do assistente de instalação.
+ *
+ * Mora ao lado do `config.json`, em `userData`, e não na pasta de instalação: o
+ * atualizador apaga aquela pasta inteira a cada versão nova.
+ */
+async function idiomaDoInstalador(): Promise<Idioma | null> {
+  try {
+    const bruto = await fs.readFile(join(app.getPath('userData'), 'idioma.txt'), 'utf8')
+    return interpretarIdiomaGravado(bruto)
+  } catch {
+    // Não existe: `npm run dev`, ou uma instalação anterior a esta versão.
+    return null
+  }
+}
+
 let atual: Idioma = 'pt'
 
-/** Lê a escolha gravada, caindo no idioma do sistema. Chamado uma vez, na abertura. */
+/**
+ * Resolve o idioma da sessão. Chamado uma vez, na abertura.
+ *
+ * Na ordem: o que o instalador gravou; o que o antigo botão da interface deixou
+ * no `config.json`, para quem já tinha escolhido antes desta versão; e por fim
+ * o palpite do sistema.
+ */
 export async function carregarIdioma(): Promise<Idioma> {
-  atual = (await obterIdiomaEscolhido()) ?? idiomaDoSistema()
+  atual = (await idiomaDoInstalador()) ?? (await obterIdiomaEscolhido()) ?? idiomaDoSistema()
   return atual
 }
 
 export function idiomaAtual(): Idioma {
   return atual
-}
-
-export function usarIdioma(idioma: Idioma): void {
-  atual = idioma
 }
 
 /** Os textos do idioma em vigor. */

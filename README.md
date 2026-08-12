@@ -20,6 +20,21 @@ npm run build:win    # gera o instalador em dist/
 Na primeira abertura, escolha uma pasta para ser o mapa. Depois é só usar
 **Adicionar pasta** — o app move a pasta escolhida para lá de verdade.
 
+## Idioma
+
+A interface fala português ou inglês, e a escolha é feita **na primeira tela do
+instalador** — não há botão para trocar depois. É decisão de uma vez só, e o topo do app
+estava gastando um lugar de destaque com ela.
+
+O assistente grava a escolha em `%APPDATA%\archipel\idioma.txt`, que é de onde o app lê ao
+abrir. Fica ali, e não na pasta de instalação, porque a atualização automática apaga a
+pasta de instalação inteira a cada versão nova. Rodando pelo `npm run dev` o arquivo não
+existe, e aí vale o idioma do Windows.
+
+As chaves dos arquivos (`criadoEm`, `pasta`, `ordem`) e os nomes dentro de `.organizador`
+seguem em português nos dois idiomas: são o formato dos dados, não texto de tela. Traduzi-los
+criaria dois dialetos do mesmo formato, com mapas impossíveis de abrir no outro idioma.
+
 ## Como o mapa é guardado
 
 ```
