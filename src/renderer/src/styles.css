@@ -45,7 +45,8 @@
   --raio-p: 7px;
 
   --sombra-flutuante: 0 18px 44px rgba(0, 0, 0, 0.55);
-  --brilho-destaque: 0 0 0 1px rgba(var(--destaque-rgb), 0.5), 0 6px 20px rgba(var(--destaque-rgb), 0.28);
+  --brilho-destaque:
+    0 0 0 1px rgba(var(--destaque-rgb), 0.5), 0 6px 20px rgba(var(--destaque-rgb), 0.28);
 
   /* Desacelera forte no fim: é a curva que faz o painel "assentar". */
   --mola: cubic-bezier(0.22, 1, 0.36, 1);
