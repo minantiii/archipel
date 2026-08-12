@@ -207,7 +207,7 @@ export default function DetailsPanel({
         <div className="linha-cor">
           <input
             type="color"
-            value={ilha.cor ?? '#7c5cff'}
+            value={ilha.cor ?? '#2570cc'}
             onChange={(e) => onSalvar({ cor: e.target.value })}
             title={t.sobrescreverCor}
           />

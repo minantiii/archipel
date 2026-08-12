@@ -5,7 +5,7 @@
    tentamos tingir tudo de azul e ficou pior: o fundo é pano de fundo, quem tem
    que chamar atenção é o mapa.
 
-   A cara própria vem dos detalhes, não da parede: o roxo ganhou um par ciano, e
+   A cara própria vem dos detalhes, não da parede: o azul ganhou um par ciano, e
    os dois aparecem juntos só onde há pouca área — o fio de luz sob o topo, o
    marcador da lista, o divisor, a barra de carregamento.
 
@@ -16,8 +16,8 @@
    ========================================================================== */
 
 :root {
-  /* Cinza neutro, como era no começo. A tinta azulada que passou por aqui não
-     ficou boa — o roxo e o ciano continuam, mas só nos detalhes, nunca no fundo. */
+  /* Cinza neutro, como era no começo. Tingir o fundo de azul não ficou bom — o
+     azul e o ciano continuam, mas só nos detalhes, nunca no fundo. */
   --fundo: #141416;
   --fundo-painel: #1b1b1f;
   --fundo-elevado: #232329;
@@ -29,10 +29,14 @@
   --texto: #e6e6ea;
   --texto-suave: #9a9aa6;
 
-  --destaque: #7b61ff;
-  --destaque-suave: #a48dff;
+  --destaque: #2570cc;
+  --destaque-suave: #68a0e3;
+  /* Os mesmos canais do `--destaque` soltos, para os véus e halos que precisam
+     dele com transparência: `rgba(var(--destaque-rgb), 0.16)`. Assim trocar a
+     cor de destaque é mexer em dois lugares, não em quinze. */
+  --destaque-rgb: 37, 112, 204;
   /* A outra metade da identidade: o ciano só aparece em gradiente e em brilho,
-     nunca sozinho como cor de texto — sozinho ele briga com o roxo. */
+     nunca sozinho como cor de texto — sozinho ele briga com o azul. */
   --secundario: #22d3ee;
   --perigo: #ff6b81;
   --atencao: #ffb454;
@@ -41,7 +45,7 @@
   --raio-p: 7px;
 
   --sombra-flutuante: 0 18px 44px rgba(0, 0, 0, 0.55);
-  --brilho-destaque: 0 0 0 1px rgba(123, 97, 255, 0.5), 0 6px 20px rgba(123, 97, 255, 0.28);
+  --brilho-destaque: 0 0 0 1px rgba(var(--destaque-rgb), 0.5), 0 6px 20px rgba(var(--destaque-rgb), 0.28);
 
   /* Desacelera forte no fim: é a curva que faz o painel "assentar". */
   --mola: cubic-bezier(0.22, 1, 0.36, 1);
@@ -212,17 +216,17 @@ button:focus-visible {
 }
 
 button.primario {
-  background: linear-gradient(135deg, var(--destaque), #9a5cff 55%, #6c7bff);
+  background: linear-gradient(135deg, var(--destaque), #2988d6 55%, #31a0d8);
   border-color: transparent;
   color: #fff;
   font-weight: 600;
-  box-shadow: 0 4px 16px rgba(123, 97, 255, 0.28);
+  box-shadow: 0 4px 16px rgba(var(--destaque-rgb), 0.28);
 }
 
 button.primario:hover:not(:disabled) {
-  background: linear-gradient(135deg, var(--destaque-suave), #a86bff 55%, #7d8bff);
+  background: linear-gradient(135deg, var(--destaque-suave), #54a0de 55%, #5cb4e0);
   border-color: transparent;
-  box-shadow: 0 8px 26px rgba(123, 97, 255, 0.42);
+  box-shadow: 0 8px 26px rgba(var(--destaque-rgb), 0.42);
 }
 
 /* --- Estado inicial, antes de existir um mapa escolhido ------------------- */
@@ -257,7 +261,7 @@ button.primario:hover:not(:disabled) {
   font-size: 27px;
   font-weight: 600;
   letter-spacing: -0.02em;
-  background: linear-gradient(100deg, #fff, #cfc4ff 45%, #9fe9f5);
+  background: linear-gradient(100deg, #fff, #c2dcff 45%, #9fe9f5);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -323,7 +327,7 @@ button.primario:hover:not(:disabled) {
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(123, 97, 255, 0.45),
+    rgba(var(--destaque-rgb), 0.45),
     rgba(34, 211, 238, 0.3),
     transparent
   );
@@ -375,20 +379,20 @@ button.primario:hover:not(:disabled) {
   color: var(--texto);
 }
 
-/* Ligado: o ícone acende no roxo em vez de inverter o botão inteiro. Um bloco
+/* Ligado: o ícone acende no azul em vez de inverter o botão inteiro. Um bloco
    sólido de 32px ao lado dos outros pesaria demais para um estado de modo. */
 .topo-acoes button.botao-icone.ativo {
-  background: rgba(123, 97, 255, 0.16);
+  background: rgba(var(--destaque-rgb), 0.16);
   border-color: var(--destaque);
   color: var(--destaque-suave);
   box-shadow: none;
 }
 
 .topo-acoes button.ativo {
-  background: linear-gradient(135deg, var(--destaque), #6c7bff);
+  background: linear-gradient(135deg, var(--destaque), #2f92d9);
   border-color: transparent;
   color: #fff;
-  box-shadow: 0 4px 18px rgba(123, 97, 255, 0.35);
+  box-shadow: 0 4px 18px rgba(var(--destaque-rgb), 0.35);
 }
 
 /* Fita indeterminada durante leituras de disco. Fica sobre o fio do topo, então
@@ -512,7 +516,7 @@ body.redimensionando {
   outline: none;
   border-color: var(--destaque);
   background: var(--fundo-flutuante);
-  box-shadow: 0 0 0 3px rgba(123, 97, 255, 0.16);
+  box-shadow: 0 0 0 3px rgba(var(--destaque-rgb), 0.16);
 }
 
 .tags-filtro {
@@ -735,7 +739,7 @@ body.redimensionando {
   background: var(--fundo-elevado);
   border: 1px solid var(--destaque);
   border-radius: var(--raio-p);
-  box-shadow: 0 0 0 3px rgba(123, 97, 255, 0.16);
+  box-shadow: 0 0 0 3px rgba(var(--destaque-rgb), 0.16);
 }
 
 .campo-renomear:focus {
@@ -923,7 +927,7 @@ body.redimensionando {
 .linha-tag input[type='text']:focus {
   outline: none;
   border-color: var(--destaque);
-  box-shadow: 0 0 0 3px rgba(123, 97, 255, 0.16);
+  box-shadow: 0 0 0 3px rgba(var(--destaque-rgb), 0.16);
 }
 
 .linha-tag button,
@@ -1015,7 +1019,7 @@ body.redimensionando {
 .secao-diario textarea:focus {
   outline: none;
   border-color: var(--destaque);
-  box-shadow: 0 0 0 3px rgba(123, 97, 255, 0.16);
+  box-shadow: 0 0 0 3px rgba(var(--destaque-rgb), 0.16);
 }
 
 .dica-diario {
@@ -1036,8 +1040,8 @@ body.redimensionando {
   padding: 7px 16px;
   font-size: 12.5px;
   color: var(--destaque-suave);
-  background: linear-gradient(90deg, rgba(123, 97, 255, 0.16), rgba(34, 211, 238, 0.08));
-  border-bottom: 1px solid rgba(123, 97, 255, 0.3);
+  background: linear-gradient(90deg, rgba(var(--destaque-rgb), 0.16), rgba(34, 211, 238, 0.08));
+  border-bottom: 1px solid rgba(var(--destaque-rgb), 0.3);
   animation: descer var(--medio) var(--mola) both;
 }
 

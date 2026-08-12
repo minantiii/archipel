@@ -26,6 +26,9 @@ const COR_PONTE = '#3a3a45'
 const COR_ROTULO = '#d8d8e0'
 const COR_ROTULO_AUSENTE = '#7a7a86'
 
+/** O `--destaque-suave` do CSS. O canvas não lê variável CSS, então é cópia. */
+const COR_DESTAQUE = '#68a0e3'
+
 /** Intervalo máximo entre dois cliques na mesma ilha para contar como duplo. */
 const JANELA_DUPLO_MS = 400
 
@@ -546,7 +549,7 @@ export default function Palco({
         const avanco = 1 - Math.pow(1 - ciclo, 2) // desacelera ao se abrir
         ctx.beginPath()
         ctx.arc(ilha.x, ilha.y, raio + 3 + avanco * 14, 0, 2 * Math.PI)
-        ctx.strokeStyle = '#a48dff'
+        ctx.strokeStyle = COR_DESTAQUE
         ctx.lineWidth = 2.5 * (1 - avanco * 0.6)
         ctx.globalAlpha = opacidade * (1 - avanco)
         ctx.stroke()
@@ -627,7 +630,7 @@ export default function Palco({
   const corDaPonte = useCallback(
     (ponte: PonteVisual) => {
       if (!vizinhos) return COR_PONTE
-      return naVizinhanca(ponte) ? '#8c7bff' : 'rgba(58,58,69,0.2)'
+      return naVizinhanca(ponte) ? '#4688d7' : 'rgba(58,58,69,0.2)'
     },
     [vizinhos, naVizinhanca]
   )
@@ -681,7 +684,7 @@ export default function Palco({
           linkDirectionalParticles={particulasDaPonte}
           linkDirectionalParticleSpeed={0.006}
           linkDirectionalParticleWidth={2}
-          linkDirectionalParticleColor={() => '#a48dff'}
+          linkDirectionalParticleColor={() => COR_DESTAQUE}
           // Por padrão a lib para de repintar quando a simulação esfria — e aí
           // halo, pulso e transições congelariam no meio. O custo é um canvas
           // repintando a 60fps, que para um mapa de dezenas de pastas não pesa.
