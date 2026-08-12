@@ -44,6 +44,11 @@ jobs:
       - name: Conferir tipos e testes antes de publicar
         run: npm run typecheck && npm test
 
+      # O script carrega `--publish never` de propósito. Vendo CI e uma tag, o
+      # electron-builder decide publicar a release por conta própria e para com
+      # "GitHub Personal Access Token is not set" — depois de já ter compilado o
+      # instalador inteiro. Quem cria a release aqui é o passo lá embaixo, que
+      # anexa também o SHA256 e as notas geradas.
       - run: npm run build:win
 
       - name: Calcular o SHA256
