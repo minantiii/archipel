@@ -11,7 +11,7 @@ import { escreverAtomico, existe } from './io'
  * <raiz>/
  *   kronos-spec/            ← pasta de projeto real
  *   .organizador/
- *     CLAUDE.md             ← explica o formato pro Claude Code
+ *     CLAUDE.md             ← explica o formato pro agente de linha de comando
  *     config.yaml           ← cores das tags
  *     pastas/kronos-spec.md ← metadados da ilha
  * ```

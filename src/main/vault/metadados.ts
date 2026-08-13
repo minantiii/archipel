@@ -16,7 +16,7 @@ import {
  * Alterações pontuais no `.md` de uma ilha.
  *
  * Sempre relê o arquivo antes de gravar: entre o carregamento da tela e o clique
- * do usuário, o Claude Code (ou o próprio usuário no VS Code) pode ter editado o
+ * do usuário, um agente (ou o próprio usuário no VS Code) pode ter editado o
  * arquivo. Reler evita sobrescrever essa edição com um estado velho da UI.
  */
 async function lerOuCriar(caminho: string): Promise<ArquivoPasta> {

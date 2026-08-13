@@ -6,7 +6,7 @@ import type { Posicao } from '@shared/types'
  *
  * Duas garantias que o resto do app depende:
  *  1. `serializar` NUNCA destrói o corpo do arquivo — só reescreve o frontmatter.
- *     O corpo é território do usuário e do Claude Code.
+ *     O corpo é território do usuário e de quem editar por fora.
  *  2. `parsear` nunca lança. Frontmatter ausente, malformado ou com tipos
  *     errados degrada para o valor padrão em vez de derrubar o app.
  */
@@ -77,7 +77,7 @@ function comoTexto(valor: unknown): string | null {
 }
 
 function comoTags(valor: unknown): string[] {
-  // Aceita tanto `tags: [a, b]` quanto `tags: a` — o Claude Code pode escrever qualquer um.
+  // Aceita tanto `tags: [a, b]` quanto `tags: a` — um editor externo pode escrever qualquer um.
   const bruto = Array.isArray(valor) ? valor : valor === undefined || valor === null ? [] : [valor]
   const tags = bruto
     .map((t) => (typeof t === 'string' ? t.trim().replace(/^#/, '') : ''))
@@ -128,7 +128,7 @@ export function serializar(arquivo: Pick<ArquivoPasta, 'meta' | 'corpo'>): strin
   const { meta, corpo } = arquivo
 
   // Só grava as chaves que têm valor: frontmatter enxuto é mais fácil de ler
-  // e de editar à mão (ou pelo Claude Code).
+  // e de editar à mão (ou por um agente).
   const dados: Record<string, unknown> = {}
   if (meta.pasta) dados.pasta = meta.pasta
   if (meta.tags.length > 0) dados.tags = meta.tags

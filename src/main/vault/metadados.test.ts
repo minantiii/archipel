@@ -69,10 +69,10 @@ describe('salvarMeta', () => {
   it('relê o disco antes de gravar, sem sobrescrever edição externa', async () => {
     await salvarMeta(raiz, 'erp', { tags: ['inicial'] })
 
-    // Simula o Claude Code editando o arquivo enquanto a tela estava aberta.
+    // Simula um agente editando o arquivo enquanto a tela estava aberta.
     await fs.writeFile(
       caminhoArquivoMeta(raiz, 'erp'),
-      '---\ntags: [inicial]\n---\n\nDescrição que o Claude acabou de escrever.\n',
+      '---\ntags: [inicial]\n---\n\nDescrição que o agente acabou de escrever.\n',
       'utf8'
     )
 
@@ -80,7 +80,7 @@ describe('salvarMeta', () => {
     await salvarMeta(raiz, 'erp', { pos: { x: 5, y: 5 } })
 
     const arquivo = await ler('erp')
-    expect(arquivo.corpo).toContain('Descrição que o Claude acabou de escrever.')
+    expect(arquivo.corpo).toContain('Descrição que o agente acabou de escrever.')
     expect(arquivo.meta.pos).toEqual({ x: 5, y: 5 })
   })
 })

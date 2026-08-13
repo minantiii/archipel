@@ -42,7 +42,7 @@ C:\SeuMapa\
   kronos-spec\                    ← pasta de projeto real
   ApiTelemetria\
   .organizador\
-    CLAUDE.md                     ← explica o formato pro Claude Code
+    CLAUDE.md                     ← explica o formato pro agente de linha de comando
     config.yaml                   ← tags e cores
     movimentos.log                ← histórico de movimentações
     removidos\                    ← metadados de pastas tiradas do mapa
@@ -81,9 +81,9 @@ os `.md` de uma vez. Cada ilha também tem "Abrir terminal aqui", que cai dentro
 projeto.
 
 O app não embute nenhuma ferramenta de IA nem exige uma instalada. Mas, como o formato é
-markdown, um agente de linha de comando (Claude Code, por exemplo) trabalha nele
-nativamente — é só rodar o agente no terminal que você acabou de abrir. O `CLAUDE.md`
-gerado em `.organizador` documenta o formato e as regras, e dá para pedir coisas como:
+markdown, um agente de linha de comando trabalha nele nativamente — é só rodar o agente no
+terminal que você acabou de abrir. O `CLAUDE.md` gerado em `.organizador` documenta o
+formato e as regras, e dá para pedir coisas como:
 
 > Leia as pastas e agrupe por tema, criando tags coerentes.
 > Levante pontes entre as pastas que fazem parte do mesmo sistema.

@@ -32,7 +32,7 @@ export async function observar(raiz: string, aoMudar: () => void): Promise<void>
     awaitWriteFinish: { stabilityThreshold: 250, pollInterval: 60 }
   })
 
-  // Uma edição em lote (o Claude salvando vários `.md` seguidos) vira uma
+  // Uma edição em lote (um agente salvando vários `.md` seguidos) vira uma
   // recarga só, em vez de uma por arquivo.
   let agendado: NodeJS.Timeout | null = null
   const notificar = (): void => {
