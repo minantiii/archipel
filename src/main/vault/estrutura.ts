@@ -11,7 +11,7 @@ import { escreverAtomico, existe } from './io'
  * <raiz>/
  *   kronos-spec/            ← pasta de projeto real
  *   .organizador/
- *     CLAUDE.md             ← explica o formato pro agente de linha de comando
+ *     AGENTS.md             ← explica o formato pro agente de linha de comando
  *     config.yaml           ← cores das tags
  *     pastas/kronos-spec.md ← metadados da ilha
  * ```
@@ -63,7 +63,7 @@ export function corAutomatica(tag: string, usadas: ReadonlySet<string> = new Set
   return PALETA[inicio] // Paleta esgotada: repetir é melhor que não ter cor.
 }
 
-const CLAUDE_MD = `# Mapa de pastas
+const AGENTS_MD = `# Mapa de pastas
 
 Este diretório é o "banco de dados" de um organizador visual de pastas. Cada pasta de
 projeto na raiz é uma **ilha do mapa**, e este diretório guarda os metadados dessas
@@ -127,12 +127,26 @@ Todos os campos do frontmatter são opcionais:
 O app observa este diretório e redesenha o mapa sozinho quando você salva.
 `
 
-/** Cria `.organizador/` com o `CLAUDE.md` e o `config.yaml`, se ainda não existirem. */
+/** Cria `.organizador/` com o `AGENTS.md` e o `config.yaml`, se ainda não existirem. */
 export async function garantirEstrutura(raiz: string): Promise<void> {
   await fs.mkdir(caminhoPastas(raiz), { recursive: true })
 
-  const claude = join(caminhoMeta(raiz), 'CLAUDE.md')
-  if (!(await existe(claude))) await escreverAtomico(claude, CLAUDE_MD)
+  const agentes = join(caminhoMeta(raiz), 'AGENTS.md')
+  const legado = join(caminhoMeta(raiz), 'CLAUDE.md')
+
+  // Mapas criados antes do rename têm o arquivo com o nome antigo. Renomear, e não
+  // gerar um segundo do zero, porque o conteúdo pode ter sido editado à mão. Se o
+  // rename falhar (arquivo travado), cai no caminho de baixo e cria o novo — dois
+  // arquivos explicando o formato é bem menos ruim do que o mapa não abrir.
+  if (!(await existe(agentes)) && (await existe(legado))) {
+    try {
+      await fs.rename(legado, agentes)
+    } catch {
+      /* segue para a criação normal */
+    }
+  }
+
+  if (!(await existe(agentes))) await escreverAtomico(agentes, AGENTS_MD)
 
   const config = join(caminhoMeta(raiz), 'config.yaml')
   if (!(await existe(config))) await gravarConfig(raiz, { tags: [], ordem: [] })

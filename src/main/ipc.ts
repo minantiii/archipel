@@ -299,7 +299,7 @@ export function registrarIpc(): void {
   ipcMain.handle(CANAIS.abrirTerminalNoMapa, async (): Promise<Resultado<null>> =>
     tentar(async () => {
       // Em `.organizador`, e não na raiz: é de lá que se enxergam todos os `.md`
-      // de uma vez, com o `CLAUDE.md` ao lado explicando o formato.
+      // de uma vez, com o `AGENTS.md` ao lado explicando o formato.
       await abrirTerminal(join(await raizObrigatoria(), '.organizador'))
       return null
     })

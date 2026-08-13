@@ -42,7 +42,7 @@ C:\SeuMapa\
   kronos-spec\                    ← pasta de projeto real
   ApiTelemetria\
   .organizador\
-    CLAUDE.md                     ← explica o formato pro agente de linha de comando
+    AGENTS.md                     ← explica o formato pro agente de linha de comando
     config.yaml                   ← tags e cores
     movimentos.log                ← histórico de movimentações
     removidos\                    ← metadados de pastas tiradas do mapa
@@ -82,7 +82,7 @@ projeto.
 
 O app não embute nenhuma ferramenta de IA nem exige uma instalada. Mas, como o formato é
 markdown, um agente de linha de comando trabalha nele nativamente — é só rodar o agente no
-terminal que você acabou de abrir. O `CLAUDE.md` gerado em `.organizador` documenta o
+terminal que você acabou de abrir. O `AGENTS.md` gerado em `.organizador` documenta o
 formato e as regras, e dá para pedir coisas como:
 
 > Leia as pastas e agrupe por tema, criando tags coerentes.

@@ -30,9 +30,31 @@ describe('carregarMapa', () => {
   it('cria a estrutura do mapa no primeiro carregamento', async () => {
     await carregarMapa(raiz)
 
-    await expect(fs.access(join(caminhoMeta(raiz), 'CLAUDE.md'))).resolves.toBeUndefined()
+    await expect(fs.access(join(caminhoMeta(raiz), 'AGENTS.md'))).resolves.toBeUndefined()
     await expect(fs.access(join(caminhoMeta(raiz), 'config.yaml'))).resolves.toBeUndefined()
     await expect(fs.access(join(caminhoMeta(raiz), 'pastas'))).resolves.toBeUndefined()
+  })
+
+  it('renomeia o arquivo de instruções antigo, preservando o que foi editado nele', async () => {
+    await fs.mkdir(caminhoMeta(raiz), { recursive: true })
+    await fs.writeFile(join(caminhoMeta(raiz), 'CLAUDE.md'), '# Minhas regras próprias\n', 'utf8')
+
+    await carregarMapa(raiz)
+
+    const conteudo = await fs.readFile(join(caminhoMeta(raiz), 'AGENTS.md'), 'utf8')
+    expect(conteudo).toBe('# Minhas regras próprias\n')
+    await expect(fs.access(join(caminhoMeta(raiz), 'CLAUDE.md'))).rejects.toThrow()
+  })
+
+  it('não toca no arquivo antigo se o novo já existe', async () => {
+    await fs.mkdir(caminhoMeta(raiz), { recursive: true })
+    await fs.writeFile(join(caminhoMeta(raiz), 'CLAUDE.md'), 'antigo\n', 'utf8')
+    await fs.writeFile(join(caminhoMeta(raiz), 'AGENTS.md'), 'novo\n', 'utf8')
+
+    await carregarMapa(raiz)
+
+    expect(await fs.readFile(join(caminhoMeta(raiz), 'AGENTS.md'), 'utf8')).toBe('novo\n')
+    expect(await fs.readFile(join(caminhoMeta(raiz), 'CLAUDE.md'), 'utf8')).toBe('antigo\n')
   })
 
   it('registra pastas que apareceram no disco por fora', async () => {
