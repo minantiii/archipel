@@ -1,7 +1,6 @@
 import { promises as fs } from 'node:fs'
-import { join } from 'node:path'
 import type { MetaPatch } from '@shared/types'
-import { caminhoArquivoMeta, caminhoMeta } from './estrutura'
+import { caminhoArquivoMeta } from './estrutura'
 import { escreverAtomico } from './io'
 import {
   adicionarLigacao,
@@ -89,20 +88,16 @@ export async function desconectar(raiz: string, origem: string, destino: string)
 }
 
 /**
- * Tira o `.md` de circulação quando a pasta sai do mapa.
+ * Apaga o `.md` da ilha cuja pasta não está mais no mapa.
  *
- * Move para `removidos/` em vez de apagar: sem a pasta, a ilha viraria um fantasma
- * sujando o mapa, mas as tags e o diário que o usuário escreveu continuam
- * recuperáveis se ele se arrepender.
+ * Apagar, e não guardar num canto: o mapa acompanha o disco, e um arquivo de
+ * metadados sobrevivendo à pasta viraria acúmulo silencioso — meses depois,
+ * uma pilha de `.md` de coisas que ninguém lembra por que estão lá. O custo
+ * assumido é que tags e diário se vão com a pasta.
+ *
+ * Não reclama se o arquivo já não existir: ilha fantasma (só citada numa
+ * `[[ligação]]`) nunca teve `.md` para apagar.
  */
-export async function arquivarMeta(raiz: string, id: string): Promise<void> {
-  const origem = caminhoArquivoMeta(raiz, id)
-  const pastaArquivo = join(caminhoMeta(raiz), 'removidos')
-
-  try {
-    await fs.mkdir(pastaArquivo, { recursive: true })
-    await fs.rename(origem, join(pastaArquivo, `${id}.md`))
-  } catch {
-    // Sem `.md` para arquivar (ilha fantasma, por exemplo): não é problema.
-  }
+export async function esquecerMeta(raiz: string, id: string): Promise<void> {
+  await fs.rm(caminhoArquivoMeta(raiz, id), { force: true }).catch(() => undefined)
 }

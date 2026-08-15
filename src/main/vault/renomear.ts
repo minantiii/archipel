@@ -52,7 +52,8 @@ export async function renomearPasta(raiz: string, id: string, novoNome: string):
   const pastaAtual = join(raiz, nomeAtual)
   const pastaNova = join(raiz, nome)
 
-  // Ilha ausente não tem pasta no disco; nesse caso só os metadados mudam.
+  // A pasta pode ter sumido entre a varredura e o clique; nesse caso não há o
+  // que renomear no disco, e só os metadados mudam.
   if (await ehDiretorio(pastaAtual)) {
     if (nome !== nomeAtual && (await existe(pastaNova))) {
       throw new ErroDeRenomeacao(`Já existe "${nome}" na raiz do mapa.`)

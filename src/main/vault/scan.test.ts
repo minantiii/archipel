@@ -76,18 +76,33 @@ describe('carregarMapa', () => {
     expect(mapa.ilhas.map((n) => n.id)).toEqual(['erp'])
   })
 
-  it('marca como ausente o .md cuja pasta sumiu, sem perder os metadados', async () => {
+  it('tira do mapa a ilha cuja pasta sumiu do disco, e o .md junto', async () => {
     await criarPasta('erp')
+    await criarPasta('portal')
     await carregarMapa(raiz)
     await fs.rm(join(raiz, 'erp'), { recursive: true })
-    await escreverMeta('erp', '---\ntags: [importante]\n---\n\ndiário que não pode sumir\n')
 
     const mapa = await carregarMapa(raiz)
-    const erp = mapa.ilhas.find((i) => i.id === 'erp')
 
-    expect(erp?.ausente).toBe(true)
-    expect(erp?.tags).toEqual(['importante'])
-    expect(erp?.diario).toContain('diário que não pode sumir')
+    expect(mapa.ilhas.map((i) => i.id)).toEqual(['portal'])
+    // O `.md` não pode sobreviver à pasta: senão a ilha voltaria no carregamento
+    // seguinte, e o mapa iria acumulando metadados de coisa que não existe mais.
+    await expect(fs.access(caminhoArquivoMeta(raiz, 'erp'))).rejects.toThrow()
+  })
+
+  it('a pasta que volta com o mesmo nome entra como ilha nova', async () => {
+    await criarPasta('erp')
+    await carregarMapa(raiz)
+    await escreverMeta('erp', '---\ntags: [importante]\n---\n\ndiário\n')
+    await fs.rm(join(raiz, 'erp'), { recursive: true })
+    await carregarMapa(raiz)
+
+    // Consequência assumida de apagar o `.md`: os metadados foram com a pasta.
+    await criarPasta('erp')
+    const ilha = (await carregarMapa(raiz)).ilhas.find((i) => i.id === 'erp')
+
+    expect(ilha?.ausente).toBe(false)
+    expect(ilha?.tags).toEqual([])
   })
 
   it('preserva tags e diário entre carregamentos', async () => {

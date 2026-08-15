@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Mapa, Ilha } from '@shared/types'
 import { useStore } from '../state/store'
 
@@ -17,6 +17,24 @@ interface Props {
   onSelecionar: (id: string) => void
   onAbrir: (id: string) => void
   onReordenar: (ids: string[]) => void
+  /** Item arrastado para fora da janela: sai do mapa, num destino a escolher. */
+  onTirarDoMapa: (id: string) => void
+}
+
+/**
+ * `true` quando o ponto está fora da janela do app, em coordenadas de tela.
+ *
+ * `screenX/screenY` do evento e `screenX/outerWidth` da janela falam a mesma
+ * língua (pixels de CSS da tela), então isto continua valendo com a escala do
+ * Windows em 125% ou 150%.
+ */
+function foraDaJanela(x: number, y: number): boolean {
+  return (
+    x < window.screenX ||
+    y < window.screenY ||
+    x > window.screenX + window.outerWidth ||
+    y > window.screenY + window.outerHeight
+  )
 }
 
 /** Normaliza para busca tolerante a acento e caixa ("telemetria" acha "ApiTelemetria"). */
@@ -56,11 +74,45 @@ export default function Sidebar({
   onFiltroTag,
   onSelecionar,
   onAbrir,
-  onReordenar
+  onReordenar,
+  onTirarDoMapa
 }: Props): React.JSX.Element {
   const t = useStore((e) => e.t)
   const [arrastando, setArrastando] = useState<string | null>(null)
   const [alvo, setAlvo] = useState<string | null>(null)
+  /** `true` enquanto o arraste em curso ainda está por cima da janela. */
+  const sobreAJanela = useRef(true)
+
+  /*
+   * Rastro do arraste, para saber se ele acabou fora da janela.
+   *
+   * Nenhuma das duas evidências serve sozinha, e é por isso que o `dragEnd`
+   * exige as duas. O rastro dos eventos sozinho acusaria também um item largado
+   * num canto do próprio app que não aceita drop — ali o `dragleave` também é a
+   * última coisa que acontece. E a posição sozinha erra quando o Chromium
+   * entrega (0,0) no fim do arraste, que num app maximizado cai dentro da
+   * janela e num app em janela cai fora.
+   */
+  useEffect(() => {
+    const entrou = (): void => {
+      sobreAJanela.current = true
+    }
+    const saiu = (): void => {
+      sobreAJanela.current = false
+    }
+
+    // Na captura: o arraste sobre o canvas do mapa não borbulha até aqui.
+    window.addEventListener('dragenter', entrou, true)
+    window.addEventListener('dragover', entrou, true)
+    window.addEventListener('drop', entrou, true)
+    window.addEventListener('dragleave', saiu, true)
+    return () => {
+      window.removeEventListener('dragenter', entrou, true)
+      window.removeEventListener('dragover', entrou, true)
+      window.removeEventListener('drop', entrou, true)
+      window.removeEventListener('dragleave', saiu, true)
+    }
+  }, [])
 
   const ordenados = useMemo(() => ordenar(mapa.ilhas, mapa.ordem), [mapa.ilhas, mapa.ordem])
 
@@ -157,15 +209,25 @@ export default function Sidebar({
             }}
             onDragStart={(evento) => {
               setArrastando(ilha.id)
+              sobreAJanela.current = true
               evento.dataTransfer.effectAllowed = 'move'
               // Dois formatos: o próprio para o mapa reconhecer a origem, e
               // text/plain para o arraste não parecer inválido no Windows.
               evento.dataTransfer.setData(TIPO_ARRASTE, ilha.id)
               evento.dataTransfer.setData('text/plain', ilha.id)
             }}
-            onDragEnd={() => {
+            onDragEnd={(evento) => {
               setArrastando(null)
               setAlvo(null)
+
+              // Largar a ilha fora da janela é dizer "tira isto do mapa". O
+              // Windows não conta em qual pasta o ponteiro estava, então quem
+              // pergunta o destino é o diálogo de sempre, com a confirmação
+              // mostrando os dois caminhos inteiros.
+              if (ilha.ausente) return
+              if (sobreAJanela.current) return
+              if (!foraDaJanela(evento.screenX, evento.screenY)) return
+              onTirarDoMapa(ilha.id)
             }}
             onDragOver={(evento) => {
               if (!arrastando || !reordenacaoAtiva) return

@@ -25,7 +25,11 @@ export interface Ilha {
   diario: string
   /** Ids citados via `[[ligação]]` no corpo do diário. */
   links: string[]
-  /** `true` quando o `.md` existe mas a pasta sumiu do disco. */
+  /**
+   * `true` na ilha fantasma: a que só existe porque uma `[[ligação]]` cita esse
+   * nome, sem pasta nem `.md` por trás. Pasta que some do disco não vira ilha
+   * ausente — ela sai do mapa na varredura seguinte.
+   */
   ausente: boolean
   criadoEm: string | null
   ultimoAcessoEm: string | null
@@ -106,6 +110,15 @@ export interface OrganizadorApi {
     versoes(): Promise<Versoes>
     /** Idioma da sessão: o escolhido no instalador, ou o do sistema. Só leitura. */
     idioma(): Promise<Idioma>
+    /**
+     * Caminho no disco de algo solto na janela pelo Explorer.
+     *
+     * Síncrona e sem IPC: quem responde é o `webUtils` do preload. O `File` que
+     * o navegador entrega não diz onde o arquivo mora, e o renderer não tem
+     * como olhar o disco para descobrir. Devolve `''` para o que não veio do
+     * disco (um arquivo arrastado de dentro de uma página, por exemplo).
+     */
+    caminhoDoArquivo(arquivo: File): string
   }
 
   mapa: {
@@ -136,6 +149,15 @@ export interface OrganizadorApi {
     renomear(id: string, novoNome: string): Promise<Resultado<Mapa>>
     /** Escolhe uma pasta fora do mapa e a MOVE para dentro. */
     adicionar(): Promise<Resultado<Mapa>>
+    /**
+     * MOVE para dentro do mapa pastas soltas na janela pelo Explorer.
+     *
+     * Sem diálogo nenhum: o arraste já disse quais pastas e para onde, e o
+     * `Ctrl` + `Z` desfaz. O que não for pasta volta na lista de quem ficou de
+     * fora, e quem já mora na raiz é ignorado — foi arrastado de volta para
+     * onde já estava.
+     */
+    adicionarCaminhos(caminhos: string[]): Promise<Resultado<Mapa>>
     /** Cria uma pasta vazia no mapa, opcionalmente já fixada numa posição. */
     criar(pos: Posicao | null): Promise<Resultado<PastaCriada>>
     /** Move a pasta de volta para fora do mapa, num destino escolhido. */
@@ -174,6 +196,7 @@ export const CANAIS = {
   pastaDesconectar: 'pasta:desconectar',
   pastaRenomear: 'pasta:renomear',
   pastaAdicionar: 'pasta:adicionar',
+  pastaAdicionarCaminhos: 'pasta:adicionar-caminhos',
   pastaCriar: 'pasta:criar',
   pastaRemoverDoMapa: 'pasta:remover-do-mapa',
   pastaApagar: 'pasta:apagar',

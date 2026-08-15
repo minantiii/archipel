@@ -1243,6 +1243,50 @@ body.redimensionando {
   padding: 0 4px;
 }
 
+/* --- Soltar pastas vindas do Explorer -------------------------------------- */
+
+/* A janela inteira é o alvo do drop, então a cortina cobre a janela inteira —
+   é ela quem diz "pode soltar em qualquer canto".
+
+   `pointer-events: none` não é detalhe: com o ponteiro chegando nela, seria ela
+   o alvo do arraste, o `dragleave` do que está embaixo dispararia na hora e a
+   cortina entraria em loop de aparecer e sumir. */
+.cortina-solta {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(20, 20, 22, 0.7);
+  backdrop-filter: blur(3px);
+  pointer-events: none;
+  animation: surgir var(--medio) var(--mola) both;
+}
+
+/* Tracejado porque é a forma universal de "cai aqui dentro", e na cor de
+   destaque porque é uma zona ativa, não um aviso. */
+.cortina-solta-caixa {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  max-width: 80%;
+  padding: 24px 34px;
+  text-align: center;
+  background: var(--fundo-painel);
+  border: 2px dashed var(--destaque-suave);
+  border-radius: var(--raio);
+  box-shadow: var(--sombra-flutuante);
+}
+
+.cortina-solta-caixa span {
+  font-size: 12px;
+  color: var(--texto-suave);
+  /* Caminho longo quebra onde der: sem isto a caixa estoura a largura da tela. */
+  overflow-wrap: anywhere;
+}
+
 /* --- Menu de contexto ------------------------------------------------------ */
 
 .menu-contexto {

@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import { CANAIS } from '@shared/types'
 import type {
   Idioma,
@@ -22,7 +22,11 @@ import type {
 const api: OrganizadorApi = {
   sistema: {
     versoes: (): Promise<Versoes> => ipcRenderer.invoke(CANAIS.sistemaVersoes),
-    idioma: (): Promise<Idioma> => ipcRenderer.invoke(CANAIS.sistemaIdioma)
+    idioma: (): Promise<Idioma> => ipcRenderer.invoke(CANAIS.sistemaIdioma),
+    // A única coisa aqui que não é IPC. O `File` não atravessa o
+    // `contextBridge`, então quem pergunta o caminho tem que ser este lado da
+    // ponte — e `webUtils` existe justamente para isso, inclusive com sandbox.
+    caminhoDoArquivo: (arquivo: File): string => webUtils.getPathForFile(arquivo)
   },
 
   mapa: {
@@ -55,6 +59,8 @@ const api: OrganizadorApi = {
     renomear: (id: string, novoNome: string): Promise<Resultado<Mapa>> =>
       ipcRenderer.invoke(CANAIS.pastaRenomear, id, novoNome),
     adicionar: (): Promise<Resultado<Mapa>> => ipcRenderer.invoke(CANAIS.pastaAdicionar),
+    adicionarCaminhos: (caminhos: string[]): Promise<Resultado<Mapa>> =>
+      ipcRenderer.invoke(CANAIS.pastaAdicionarCaminhos, caminhos),
     criar: (pos: Posicao | null): Promise<Resultado<PastaCriada>> =>
       ipcRenderer.invoke(CANAIS.pastaCriar, pos),
     removerDoMapa: (id: string): Promise<Resultado<Mapa>> =>

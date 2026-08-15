@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import ContextMenu, { type ItemMenu } from './components/ContextMenu'
 import DetailsPanel from './components/DetailsPanel'
 import DivisorLateral, { LARGURA_PADRAO, limitarLargura } from './components/DivisorLateral'
@@ -33,6 +33,19 @@ function normalizar(texto: string): string {
     .toLowerCase()
 }
 
+/**
+ * `true` quando o que está sendo arrastado veio de fora — do Explorer.
+ *
+ * É o que separa uma pasta chegando de um item da lista sendo reposicionado no
+ * mapa: aquele arraste carrega o nosso próprio tipo, nunca `Files`.
+ */
+function ehDoExplorer(evento: React.DragEvent): boolean {
+  // O `?.` não é firula: o tipo do React promete um `dataTransfer` sempre
+  // presente, mas um `DragEvent` construído à mão — como os de teste — vem com
+  // ele nulo, e aí a tela inteira morria num TypeError.
+  return evento.dataTransfer?.types.includes('Files') === true
+}
+
 export default function App(): React.JSX.Element {
   const {
     raiz,
@@ -57,6 +70,7 @@ export default function App(): React.JSX.Element {
     executarAcao,
     abrirTerminalNoMapa,
     adicionarPasta,
+    adicionarCaminhos,
     criarPasta,
     batizando,
     batizada,
@@ -78,6 +92,16 @@ export default function App(): React.JSX.Element {
   const [lateralVisivel, setLateralVisivel] = useState(
     () => localStorage.getItem(CHAVE_LATERAL) !== 'nao'
   )
+  /** Uma pasta do Explorer está pairando sobre a janela, esperando ser solta. */
+  const [recebendo, setRecebendo] = useState(false)
+  /**
+   * Quantos elementos da página o arraste já atravessou.
+   *
+   * Contador, e não um booleano: entrar num filho dispara `dragenter` nele e
+   * `dragleave` no pai, e com booleano a cortina piscava a cada elemento que o
+   * ponteiro cruzava. Só o zero significa que o arraste deixou a janela.
+   */
+  const profundidade = useRef(0)
 
   useEffect(() => {
     void carregarIdioma()
@@ -123,6 +147,28 @@ export default function App(): React.JSX.Element {
         aviso: useStore.getState().t.atualizacaoPronta(versao)
       })
     })
+  }, [])
+
+  /*
+   * Rede de segurança do arraste de arquivos.
+   *
+   * Sem `preventDefault`, o Chromium trata uma pasta solta como um endereço e
+   * **navega** para ela: a janela do app vira um listador de arquivos, sem
+   * botão de voltar. Fica na janela inteira, e não só no `.app`, porque a tela
+   * de boas-vindas também é um lugar onde dá para soltar uma pasta sem querer.
+   */
+  useEffect(() => {
+    const impedirNavegacao = (evento: DragEvent): void => {
+      if (!evento.dataTransfer?.types.includes('Files')) return
+      evento.preventDefault()
+    }
+
+    window.addEventListener('dragover', impedirNavegacao)
+    window.addEventListener('drop', impedirNavegacao)
+    return () => {
+      window.removeEventListener('dragover', impedirNavegacao)
+      window.removeEventListener('drop', impedirNavegacao)
+    }
   }, [])
 
   // Atalhos globais: Ctrl+B esconde a lateral, Ctrl+Z desfaz a última
@@ -240,8 +286,51 @@ export default function App(): React.JSX.Element {
       ? itensDaIlha(menu.id)
       : itensDoFundo(menu.pos)
 
+  /**
+   * Pastas soltas na janela entram no mapa direto, sem passar por diálogo.
+   *
+   * O caminho no disco não vem do `File` — ele não sabe onde mora. Quem
+   * responde isso é o preload, que é o único lado da ponte com acesso ao
+   * `webUtils`. O que não veio do disco devolve `''` e é descartado aqui.
+   */
+  const receberDoExplorer = (evento: React.DragEvent): void => {
+    const caminhos = Array.from(evento.dataTransfer.files)
+      .map((arquivo) => window.api.sistema.caminhoDoArquivo(arquivo))
+      .filter((caminho) => caminho.length > 0)
+
+    void adicionarCaminhos(caminhos)
+  }
+
   return (
-    <div className="app">
+    <div
+      className="app"
+      onDragEnter={(evento) => {
+        if (!ehDoExplorer(evento)) return
+        profundidade.current += 1
+        setRecebendo(true)
+      }}
+      onDragOver={(evento) => {
+        if (!ehDoExplorer(evento)) return
+        // Sem isto o drop nem chega a acontecer — e a página navega para a pasta.
+        evento.preventDefault()
+        // "Mover" e não "copiar": é literalmente o que vai acontecer com ela.
+        evento.dataTransfer.dropEffect = 'move'
+      }}
+      onDragLeave={(evento) => {
+        if (!ehDoExplorer(evento)) return
+        profundidade.current -= 1
+        if (profundidade.current > 0) return
+        profundidade.current = 0
+        setRecebendo(false)
+      }}
+      onDrop={(evento) => {
+        if (!ehDoExplorer(evento)) return
+        evento.preventDefault()
+        profundidade.current = 0
+        setRecebendo(false)
+        receberDoExplorer(evento)
+      }}
+    >
       <header className="topo">
         <div className="topo-identidade">
           <button
@@ -329,6 +418,7 @@ export default function App(): React.JSX.Element {
               onSelecionar={selecionar}
               onAbrir={(id) => void abrirNoExplorer(id)}
               onReordenar={(ids) => void reordenar(ids)}
+              onTirarDoMapa={(id) => void removerDoMapa(id)}
             />
             <DivisorLateral largura={larguraLateral} onLargura={setLarguraLateral} />
           </>
@@ -352,10 +442,9 @@ export default function App(): React.JSX.Element {
         ) : (
           <div className="palco palco-vazio">
             <p>
-              O mapa está vazio.
+              {t.mapaVazioTitulo}
               <br />
-              Use <strong>Adicionar pasta</strong> para mover um projeto para cá, ou arraste as
-              pastas direto para <code>{raiz}</code> pelo Explorer.
+              {t.mapaVazioTexto} <code>{raiz}</code>.
             </p>
           </div>
         )}
@@ -385,6 +474,19 @@ export default function App(): React.JSX.Element {
           itens={itensMenu}
           onFechar={() => setMenu(null)}
         />
+      )}
+
+      {/* A janela inteira é o alvo — soltar em qualquer canto vale, e a cortina
+          diz isso cobrindo tudo. Ela não recebe ponteiro: se recebesse, seria
+          ela quem responderia ao arraste, e o `dragleave` do que está embaixo
+          nunca chegaria. */}
+      {recebendo && (
+        <div className="cortina-solta">
+          <div className="cortina-solta-caixa">
+            <strong>{t.soltarTitulo}</strong>
+            <span>{t.soltarDestino(raiz)}</span>
+          </div>
+        </div>
       )}
     </div>
   )

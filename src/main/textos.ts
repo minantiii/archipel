@@ -20,7 +20,7 @@ import { obterIdiomaEscolhido } from './vault/config'
 const PT = {
   nenhumMapaAberto: 'Nenhum mapa aberto.',
   pastaForaDoMapa: (id: string) => `Pasta "${id}" não está no mapa.`,
-  pastaSumiuDoDisco: (id: string) => `A pasta "${id}" não existe mais no disco.`,
+  pastaSumiuDoDisco: (id: string) => `A pasta "${id}" não existe no disco.`,
   pastaJaNaoEstaNoDisco: (id: string) => `A pasta "${id}" já não está no disco.`,
 
   escolherRaizTitulo: 'Escolha a pasta que será o mapa',
@@ -62,7 +62,7 @@ const PT = {
 const EN: typeof PT = {
   nenhumMapaAberto: 'No map is open.',
   pastaForaDoMapa: (id: string) => `The folder "${id}" is not on the map.`,
-  pastaSumiuDoDisco: (id: string) => `The folder "${id}" no longer exists on disk.`,
+  pastaSumiuDoDisco: (id: string) => `The folder "${id}" does not exist on disk.`,
   pastaJaNaoEstaNoDisco: (id: string) => `The folder "${id}" is no longer on disk.`,
 
   escolherRaizTitulo: 'Choose the folder that will be the map',

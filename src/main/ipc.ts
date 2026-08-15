@@ -1,5 +1,5 @@
 import { app, BrowserWindow, clipboard, dialog, ipcMain, shell } from 'electron'
-import { basename, join } from 'node:path'
+import { basename, dirname, join } from 'node:path'
 import {
   CANAIS,
   type Mapa,
@@ -13,17 +13,14 @@ import {
   type Versoes
 } from '@shared/types'
 import { abrirNoVsCode, abrirTerminal } from './vault/actions'
+import { mesmoCaminho } from './vault/caminhos'
 import { definirRaiz, obterRaiz } from './vault/config'
 import { criarPasta } from './vault/criar'
 import { gravarConfig, lerConfig } from './vault/estrutura'
+import { ultimaMovimentacao } from './vault/historico'
 import { ehDiretorio } from './vault/io'
-import { arquivarMeta, conectar, desconectar, marcarAcesso, salvarMeta } from './vault/metadados'
-import {
-  desfazerUltima,
-  moverPasta,
-  moverVarias,
-  ultimaMovimentacao
-} from './vault/move'
+import { conectar, desconectar, esquecerMeta, marcarAcesso, salvarMeta } from './vault/metadados'
+import { desfazerUltima, moverPasta, moverVarias } from './vault/move'
 import { confirmacaoDoLote, relatarLote } from './relato'
 import { idiomaAtual, t } from './textos'
 import { renomearPasta } from './vault/renomear'
@@ -152,7 +149,7 @@ async function tentar<T>(acao: () => Promise<T | ComAviso<T>>): Promise<Resultad
  * As modais nativas já impediam duas operações do usuário ao mesmo tempo na
  * prática, mas "na prática" não é garantia: o watcher, um atalho repetido ou um
  * segundo clique rápido podiam intercalar leitura e escrita — `desfazerUltima`,
- * por exemplo, lê o log e só depois age. Aqui isso passa a ser impossível por
+ * por exemplo, lê o histórico e só depois age. Aqui isso passa a ser impossível por
  * construção. Só operações de escrita entram; leitura não espera ninguém.
  */
 let fila: Promise<unknown> = Promise.resolve()
@@ -162,6 +159,26 @@ function enfileirar<T>(acao: () => Promise<T>): Promise<T> {
   // A fila não pode morrer por causa de uma operação que falhou.
   fila = proxima.catch(() => undefined)
   return proxima
+}
+
+/**
+ * Move um lote de pastas para dentro do mapa e devolve o mapa relido.
+ *
+ * O caminho comum do botão "Adicionar pasta" e do arraste do Explorer: os dois
+ * só diferem em de onde saem os caminhos e em o que perguntam antes. Daqui para
+ * baixo, nada mais pergunta nada — já está autorizado.
+ */
+async function moverParaDentroDoMapa(
+  raiz: string,
+  origens: readonly string[]
+): Promise<Mapa | ComAviso<Mapa>> {
+  // O lote inteiro numa chamada só da fila: assim nada se intromete entre
+  // uma pasta e a seguinte, e o log sai na ordem em que o usuário escolheu.
+  const relatorio = await enfileirar(() => moverVarias(raiz, origens))
+
+  const mapa = await carregarMapa(raiz)
+  const relato = relatarLote(relatorio, idiomaAtual())
+  return relato ? new ComAviso(mapa, relato) : mapa
 }
 
 /**
@@ -332,14 +349,34 @@ export function registrarIpc(): void {
       const autorizado = await confirmar(janela, confirmacaoDoLote(raiz, origens, idiomaAtual()))
       if (!autorizado) return carregarMapa(raiz)
 
-      // O lote inteiro numa chamada só da fila: assim nada se intromete entre
-      // uma pasta e a seguinte, e o log sai na ordem em que o usuário escolheu.
-      const relatorio = await enfileirar(() => moverVarias(raiz, origens))
-
-      const mapa = await carregarMapa(raiz)
-      const relato = relatarLote(relatorio, idiomaAtual())
-      return relato ? new ComAviso(mapa, relato) : mapa
+      return moverParaDentroDoMapa(raiz, origens)
     })
+  )
+
+  /*
+   * Arrastar do Explorer e soltar na janela.
+   *
+   * Não pergunta nada, ao contrário do botão logo acima: ali a escolha acontece
+   * num diálogo que não mostra para onde as pastas vão, então a confirmação é a
+   * primeira vez que o usuário vê o destino. No arraste ele já apontou a origem
+   * e o alvo com o próprio mouse — repetir a pergunta seria pedir que
+   * confirmasse o que acabou de fazer. O `Ctrl` + `Z` continua sendo a volta.
+   */
+  ipcMain.handle(
+    CANAIS.pastaAdicionarCaminhos,
+    async (_evento, caminhos: string[]): Promise<Resultado<Mapa>> =>
+      tentar(async () => {
+        const raiz = await raizObrigatoria()
+
+        // Quem já mora na raiz foi arrastado de volta para onde já estava:
+        // ignorar em silêncio é mais honesto que um "já existe no destino".
+        // O que não for pasta segue no lote de propósito, para voltar com nome
+        // e motivo na lista de quem ficou de fora.
+        const origens = caminhos.filter((caminho) => !mesmoCaminho(dirname(caminho), raiz))
+        if (origens.length === 0) return carregarMapa(raiz)
+
+        return moverParaDentroDoMapa(raiz, origens)
+      })
   )
 
   ipcMain.handle(
@@ -383,7 +420,7 @@ export function registrarIpc(): void {
           // Lixeira, e não `fs.rm`: apagar de verdade não teria volta, e este é
           // um comando que a pessoa dá com o mouse, num menu, sem pensar muito.
           await shell.trashItem(ilha.caminho)
-          await arquivarMeta(raiz, id)
+          await esquecerMeta(raiz, id)
         })
 
         return carregarMapa(raiz)
@@ -419,7 +456,7 @@ export function registrarIpc(): void {
 
         const { aviso } = await enfileirar(async () => {
           const resultado = await moverPasta(raiz, ilha.caminho, destino)
-          await arquivarMeta(raiz, id)
+          await esquecerMeta(raiz, id)
           return resultado
         })
         const mapa = await carregarMapa(raiz)

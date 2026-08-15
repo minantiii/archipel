@@ -17,8 +17,11 @@ npm run typecheck
 npm run build:win    # gera o instalador em dist/
 ```
 
-Na primeira abertura, escolha uma pasta para ser o mapa. Depois é só usar
-**Adicionar pasta** — o app move a pasta escolhida para lá de verdade.
+Na primeira abertura, escolha uma pasta para ser o mapa. Depois é só arrastar as
+pastas do Explorer para dentro da janela — o app move cada uma para lá de verdade.
+Arrastar um item da lista lateral para fora da janela faz o contrário: tira a pasta
+do mapa. O botão **Adicionar pasta**, que abre um seletor, continua para quem
+prefere escolher por diálogo.
 
 ## Idioma
 
@@ -44,11 +47,13 @@ C:\SeuMapa\
   .organizador\
     AGENTS.md                     ← explica o formato pro agente de linha de comando
     config.yaml                   ← tags e cores
-    movimentos.log                ← histórico de movimentações
-    removidos\                    ← metadados de pastas tiradas do mapa
     pastas\
       kronos-spec.md
 ```
+
+É tudo que o app escreve no mapa, e é tudo conteúdo — nada aqui cresce sozinho com o uso.
+Estado do app (a raiz escolhida, o histórico de movimentações) fica em `%APPDATA%`, fora do
+mapa: o mapa continua sendo uma pasta comum, copiável e versionável.
 
 Cada `.md` descreve uma ilha:
 
@@ -66,8 +71,9 @@ Três regras sustentam tudo:
 
 1. **O nome do arquivo é a identidade da ilha** e casa com o nome da pasta no disco.
 2. **As pontes do mapa são as `[[ligações]]` do corpo** do `.md`.
-3. **O disco manda sobre existência.** Pasta nova ganha `.md` sozinha; `.md` sem pasta vira
-   ilha "ausente" e nunca é apagada.
+3. **O disco manda sobre existência.** Pasta nova ganha `.md` sozinha; pasta que some do
+   disco leva a ilha e o `.md` dela junto, na varredura seguinte. O mapa é um retrato do
+   disco, não um cadastro paralelo — e a conta disso é que tags e diário se vão com a pasta.
 
 Nomes com `[ ] | # ^` quebrariam a sintaxe de ligação, então o arquivo usa um nome
 higienizado e o campo `pasta:` guarda o nome verdadeiro.
@@ -93,18 +99,22 @@ formato e as regras, e dá para pedir coisas como:
 É a única parte que pode destruir trabalho, então é conservadora:
 
 - valida antes (origem existe, destino livre, mapa não vai parar dentro de si mesmo);
-- confirma mostrando os caminhos completos;
-- **registra a intenção no log antes de tocar no disco.** Se não der para gravar o registro,
+- confirma mostrando os caminhos completos — com uma exceção deliberada: soltar pastas
+  na janela move na hora, sem perguntar. Ali o gesto já apontou a origem e o destino com o
+  mouse, e a pergunta seria pedir que se confirmasse o que acabou de ser feito. Sair do
+  mapa continua confirmando, porque o destino ainda precisa ser escolhido;
+- **registra a intenção antes de tocar no disco.** Se não der para gravar o registro,
   nada é movido: uma movimentação que não pode ser registrada é uma que não pode ser desfeita.
   A confirmação vem depois e, se ela se perder, a intenção sozinha já basta para o `Ctrl` + `Z`
-  — quem decide se a movimentação aconteceu é o disco, não o log;
+  — quem decide se a movimentação aconteceu é o disco, não o registro;
 - usa `rename` e, entre volumes diferentes, **copia, confere arquivos e bytes, e só então
   remove a origem**. Se a origem não puder ser limpa (arquivo travado por outro programa), a
   movimentação continua sendo um sucesso — o conteúdo está inteiro no destino — e o app avisa
   o que sobrou para conferir, em vez de dizer que falhou e mandar procurar no lugar errado;
 - serializa toda operação que altera o mapa, para que duas nunca se cruzem;
-- registra tudo em `movimentos.log`, e `Ctrl` + `Z` devolve a última pasta para onde ela estava
-  (com a mesma confirmação de caminhos completos).
+- guarda as últimas movimentações em `%APPDATA%`, e `Ctrl` + `Z` devolve a última pasta para
+  onde ela estava (com a mesma confirmação de caminhos completos). O histórico tem teto e não
+  entra no mapa: registro de movimentação é estado do app, não conteúdo da sua pasta.
 
 Ao migrar suas pastas de verdade, vá em lotes de 3 a 5 e confira no Explorer entre eles.
 
@@ -112,6 +122,8 @@ Ao migrar suas pastas de verdade, vá em lotes de 3 a 5 e confira no Explorer en
 
 | Ação | Como |
 |---|---|
+| Trazer pastas para o mapa | arrastar do Explorer e soltar em qualquer canto da janela |
+| Tirar uma pasta do mapa | arrastar o item da lista lateral para fora da janela |
 | Fixar uma ilha no lugar | arrastar no mapa (a posição vai para o `.md`) |
 | Posicionar sem procurar | arrastar da lista lateral e soltar no mapa |
 | Reordenar a lista | arrastar um item sobre outro na lista |

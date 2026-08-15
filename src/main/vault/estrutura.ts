@@ -15,6 +15,10 @@ import { escreverAtomico, existe } from './io'
  *     config.yaml           ← cores das tags
  *     pastas/kronos-spec.md ← metadados da ilha
  * ```
+ *
+ * É tudo que o app escreve no mapa, e é tudo conteúdo: nenhum arquivo daqui
+ * cresce sozinho com o uso. Estado do app (raiz escolhida, histórico de
+ * movimentações) mora em `userData`, fora do mapa.
  */
 
 export const DIR_META = '.organizador'
@@ -76,7 +80,6 @@ ilhas em markdown puro — de propósito, para você poder editar tudo direto.
 - \`config.yaml\` — as tags conhecidas com suas cores, e \`ordem\`: a ordem manual da lista
   lateral, por nome de arquivo (sem \`.md\`). Quem não estiver na \`ordem\` aparece depois,
   em ordem alfabética. Reordenar aqui reordena a lista no app.
-- \`movimentos.log\` — histórico de movimentações de pastas. Só leitura, nunca edite.
 
 ## Formato de \`pastas/<nome>.md\`
 
@@ -109,8 +112,10 @@ Todos os campos do frontmatter são opcionais:
    a ligação. O alvo é o nome do arquivo \`.md\` sem a extensão.
 2. **Nunca crie, renomeie, mova ou apague as pastas de projeto** na raiz do mapa. Isso é
    do app, que faz verificação e mantém histórico. Você mexe só nos \`.md\` daqui.
-3. Um \`.md\` sem pasta correspondente no disco vira uma ilha "ausente" — não é erro.
-4. Ligação apontando para um nome que não existe também vira ilha ausente, exibida
+3. **Não crie \`.md\` para pasta que não existe.** O disco manda: na varredura seguinte o
+   app apaga todo \`.md\` sem pasta correspondente na raiz, e o que você escreveu nele
+   se perde.
+4. Ligação apontando para um nome que não existe vira uma ilha "ausente", exibida
    apagada. Útil para enxergar ligações quebradas; evite criá-las sem querer.
 5. A lista de tags do \`config.yaml\` é um espelho dos \`.md\`, não uma lista própria: tag
    usada num \`.md\` e ausente de lá ganha cor automática e se registra sozinha; tag que
@@ -150,6 +155,11 @@ export async function garantirEstrutura(raiz: string): Promise<void> {
 
   const config = join(caminhoMeta(raiz), 'config.yaml')
   if (!(await existe(config))) await gravarConfig(raiz, { tags: [], ordem: [] })
+
+  // O histórico de movimentações morava aqui dentro e só crescia. Agora ele vive
+  // em `userData`, com teto; o arquivo velho é varrido no primeiro carregamento
+  // para não ficar de sujeira no mapa de quem já usava o app.
+  await fs.rm(join(caminhoMeta(raiz), 'movimentos.log'), { force: true }).catch(() => undefined)
 }
 
 export interface ConfigMapa {

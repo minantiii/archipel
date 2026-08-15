@@ -46,6 +46,8 @@ interface Estado {
   fixar: (id: string, pos: Posicao | null) => Promise<void>
   abrirNoExplorer: (id: string) => Promise<void>
   adicionarPasta: () => Promise<void>
+  /** Move para o mapa pastas soltas na janela pelo Explorer. Sem diálogo nenhum. */
+  adicionarCaminhos: (caminhos: string[]) => Promise<void>
   /** Cria uma pasta vazia, opcionalmente fixada no ponto do mapa onde foi pedida. */
   criarPasta: (pos: Posicao | null) => Promise<void>
   /** Consome o aviso de "acabei de nascer", para o campo abrir uma vez só. */
@@ -171,6 +173,12 @@ export const useStore = create<Estado>((set, get) => ({
 
   adicionarPasta: async () => {
     await aplicarMovimentacao(set, () => window.api.pasta.adicionar())
+  },
+
+  adicionarCaminhos: async (caminhos) => {
+    // Soltar algo que não veio do disco não é erro nem operação: é nada.
+    if (caminhos.length === 0) return
+    await aplicarMovimentacao(set, () => window.api.pasta.adicionarCaminhos(caminhos))
   },
 
   criarPasta: async (pos) => {

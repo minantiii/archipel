@@ -11,14 +11,15 @@ import {
 } from './estrutura'
 import { escreverAtomico } from './io'
 import { higienizarNome, parsear, serializar, type ArquivoPasta } from './markdown'
+import { esquecerMeta } from './metadados'
 
 /**
  * Varredura da raiz do mapa e reconciliação com os `.md`.
  *
  * O princípio: **o disco é a fonte da verdade sobre existência**. Se a pasta está
- * lá, ela vira ilha — mesmo que ninguém tenha registrado nada. Se o `.md` sobrou sem
- * pasta, ele é marcado como ausente, nunca apagado: metadados são trabalho do
- * usuário e quem decide descartar é ele.
+ * lá, ela vira ilha — mesmo que ninguém tenha registrado nada. Se ela não está
+ * mais, a ilha sai do mapa e o `.md` vai junto: o mapa é um retrato do disco, e
+ * ilha que não corresponde a pasta nenhuma é ruído que só cresce com o tempo.
  */
 
 /** Nomes na raiz que não são pastas de projeto. */
@@ -110,6 +111,16 @@ export async function carregarMapa(raiz: string): Promise<Mapa> {
 
   for (const [id, arquivo] of arquivos) {
     const nomePasta = arquivo.meta.pasta ?? id
+
+    // Pasta apagada, movida ou renomeada por fora: a ilha sai do mapa agora, e o
+    // `.md` dela também. É seguro fazer isso aqui porque só se chega neste ponto
+    // com a leitura da raiz tendo dado certo — se o mapa inteiro estivesse
+    // inacessível, o `readdir` lá em cima teria estourado antes.
+    if (!noDisco.has(nomePasta)) {
+      await esquecerMeta(raiz, id)
+      continue
+    }
+
     ilhas.push({
       id,
       caminho: join(raiz, nomePasta),
@@ -118,7 +129,7 @@ export async function carregarMapa(raiz: string): Promise<Mapa> {
       pos: arquivo.meta.pos,
       diario: arquivo.corpo,
       links: arquivo.links,
-      ausente: !noDisco.has(nomePasta),
+      ausente: false,
       criadoEm: arquivo.meta.criadoEm,
       ultimoAcessoEm: arquivo.meta.ultimoAcessoEm
     })

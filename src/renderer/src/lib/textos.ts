@@ -35,10 +35,10 @@ const PT = {
   contagemLista: (visiveis: number, total: number) => `${visiveis} de ${total} ilhas`,
   limpeParaReordenar: ' · limpe o filtro para reordenar',
   pastasComATag: (n: number) => `${n} pasta(s)`,
-  pastaSumiu: 'Esta pasta não existe mais no disco',
+  pastaSumiu: 'Nenhuma pasta com este nome no mapa — só uma ligação apontando para cá',
   seloAusente: 'ausente',
   dicaDoItem: (caminho: string) =>
-    `${caminho}\n\nDuplo clique abre no Explorer.\nArraste para o mapa para posicionar, ou sobre outro item para reordenar.`,
+    `${caminho}\n\nDuplo clique abre no Explorer.\nArraste para o mapa para posicionar, sobre outro item para reordenar, ou para fora da janela para tirar do mapa.`,
 
   // Painel de detalhes
   acoes: 'Ações',
@@ -72,7 +72,7 @@ const PT = {
   fechar: 'Fechar',
   renomearDica: 'Clique duas vezes para renomear',
   pastaAusente:
-    'Esta pasta não existe mais no disco. Os metadados continuam guardados — se ela voltar para o mapa com o mesmo nome, tudo se religa sozinho.',
+    'Esta ilha só existe como ligação: nenhuma pasta com este nome está no mapa. Traga a pasta para o mapa ou apague a ligação que aponta para cá.',
 
   // Menus
   abrirNoExplorer: 'Abrir no Explorer',
@@ -83,6 +83,12 @@ const PT = {
   criarPastaAqui: 'Criar pasta aqui',
   adicionarExistente: 'Adicionar pasta existente…',
   abrirTerminalNoMapa: 'Abrir terminal no mapa',
+
+  // Soltar pastas vindas do Explorer
+  soltarTitulo: 'Solte para mover para o mapa',
+  soltarDestino: (raiz: string) => `As pastas passam a viver em ${raiz}`,
+  mapaVazioTitulo: 'O mapa está vazio.',
+  mapaVazioTexto: 'Arraste pastas do Explorer para cá — elas passam a viver em',
 
   // Mapa
   dicaDoMapa: 'arraste uma ilha para fixá-la ·',
@@ -118,10 +124,10 @@ const EN: typeof PT = {
   contagemLista: (visiveis: number, total: number) => `${visiveis} of ${total} islands`,
   limpeParaReordenar: ' · clear the filter to reorder',
   pastasComATag: (n: number) => `${n} folder(s)`,
-  pastaSumiu: 'This folder no longer exists on disk',
+  pastaSumiu: 'No folder by this name on the map — just a link pointing here',
   seloAusente: 'missing',
   dicaDoItem: (caminho: string) =>
-    `${caminho}\n\nDouble-click opens it in Explorer.\nDrag to the map to place it, or onto another item to reorder.`,
+    `${caminho}\n\nDouble-click opens it in Explorer.\nDrag to the map to place it, onto another item to reorder, or out of the window to take it off the map.`,
 
   acoes: 'Actions',
   explorer: 'Explorer',
@@ -154,7 +160,7 @@ const EN: typeof PT = {
   fechar: 'Close',
   renomearDica: 'Double-click to rename',
   pastaAusente:
-    'This folder no longer exists on disk. Its metadata is still kept — if it comes back to the map under the same name, everything reconnects on its own.',
+    'This island only exists as a link: no folder by this name is on the map. Bring the folder onto the map or delete the link pointing here.',
 
   abrirNoExplorer: 'Open in Explorer',
   abrirNoVsCode: 'Open in VS Code',
@@ -164,6 +170,11 @@ const EN: typeof PT = {
   criarPastaAqui: 'Create folder here',
   adicionarExistente: 'Add existing folder…',
   abrirTerminalNoMapa: 'Open terminal at the map',
+
+  soltarTitulo: 'Drop to move onto the map',
+  soltarDestino: (raiz: string) => `The folders will live in ${raiz}`,
+  mapaVazioTitulo: 'The map is empty.',
+  mapaVazioTexto: 'Drag folders here from Explorer — they will live in',
 
   dicaDoMapa: 'drag an island to pin it ·',
   dicaDoMapaAlt: '+ click releases · double-click opens the folder · drag from the list to place',

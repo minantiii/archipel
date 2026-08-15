@@ -2,26 +2,31 @@ import { promises as fs } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { caminhoMeta } from './estrutura'
+import { ultimaMovimentacao } from './historico'
 import { ehDiretorio, existe } from './io'
-import {
-  contem,
-  copiarVerificarERemover,
-  desfazerUltima,
-  moverPasta,
-  moverVarias,
-  ultimaMovimentacao
-} from './move'
+import { copiarVerificarERemover, desfazerUltima, moverPasta, moverVarias } from './move'
+
+// O histórico mora em `userData`, então o teste precisa dizer onde isso fica.
+// `vi.hoisted` porque o `vi.mock` sobe para antes dos imports e não enxergaria
+// uma variável comum daqui.
+const userData = vi.hoisted(() => ({ pasta: '' }))
+vi.mock('electron', () => ({ app: { getPath: () => userData.pasta } }))
 
 let base: string
 let raiz: string
 let fora: string
 
+/** Onde o histórico foi parar nesta rodada. */
+function arquivoHistorico(): string {
+  return join(userData.pasta, 'movimentos.json')
+}
+
 beforeEach(async () => {
   base = await fs.mkdtemp(join(tmpdir(), 'mapa-move-'))
+  userData.pasta = base
   raiz = join(base, 'mapa')
   fora = join(base, 'desktop')
-  await fs.mkdir(caminhoMeta(raiz), { recursive: true })
+  await fs.mkdir(raiz, { recursive: true })
   await fs.mkdir(fora, { recursive: true })
 })
 
@@ -57,14 +62,15 @@ async function criarProjeto(pai: string, nome: string): Promise<string> {
   return dir
 }
 
-/** Escreve o log de movimentações à mão, para exercitar históricos específicos. */
-async function escreverLog(entradas: object[]): Promise<void> {
-  await fs.mkdir(caminhoMeta(raiz), { recursive: true })
-  await fs.writeFile(
-    join(caminhoMeta(raiz), 'movimentos.log'),
-    entradas.map((e) => JSON.stringify(e)).join('\n') + '\n',
-    'utf8'
-  )
+/** Escreve o histórico à mão, para exercitar estados específicos. */
+async function escreverHistorico(registros: object[]): Promise<void> {
+  const conteudo = JSON.stringify(registros.map((registro) => ({ raiz, ...registro })))
+  await fs.writeFile(arquivoHistorico(), conteudo, 'utf8')
+}
+
+/** Os registros como estão gravados agora. */
+async function lerHistorico(): Promise<Record<string, string>[]> {
+  return JSON.parse(await fs.readFile(arquivoHistorico(), 'utf8'))
 }
 
 /**
@@ -79,7 +85,7 @@ describe('recuperação de falhas', () => {
     // cheio, antivírus, app fechado no meio). Sobra uma `iniciada` órfã.
     const origem = join(fora, 'erp')
     const destino = await criarProjeto(raiz, 'erp')
-    await escreverLog([
+    await escreverHistorico([
       { em: new Date().toISOString(), de: origem, para: destino, tipo: 'mover', estado: 'iniciada' }
     ])
 
@@ -94,21 +100,11 @@ describe('recuperação de falhas', () => {
   it('não oferece desfazer de uma movimentação que foi abortada', async () => {
     const origem = join(fora, 'erp')
     const destino = join(raiz, 'erp')
-    await escreverLog([
-      { em: new Date().toISOString(), de: origem, para: destino, tipo: 'mover', estado: 'iniciada' },
+    await escreverHistorico([
       { em: new Date().toISOString(), de: origem, para: destino, tipo: 'mover', estado: 'falhou' }
     ])
 
     expect(await ultimaMovimentacao(raiz)).toBeNull()
-  })
-
-  it('lê log antigo, gravado antes de existirem estados', async () => {
-    // Compatibilidade: o mapa de quem já usava o app não pode virar inútil.
-    const origem = join(fora, 'erp')
-    const destino = await criarProjeto(raiz, 'erp')
-    await escreverLog([{ em: new Date().toISOString(), de: origem, para: destino, tipo: 'mover' }])
-
-    expect(await ultimaMovimentacao(raiz)).toMatchObject({ de: origem, para: destino })
   })
 
   it('a última operação é a que vale, mesmo com uma abortada no meio', async () => {
@@ -117,24 +113,13 @@ describe('recuperação de falhas', () => {
     const atualDe = join(fora, 'erp')
     const atualPara = await criarProjeto(raiz, 'erp')
 
-    await escreverLog([
-      { em: '1', de: antigaDe, para: antigaPara, tipo: 'mover', estado: 'iniciada' },
+    await escreverHistorico([
       { em: '1', de: antigaDe, para: antigaPara, tipo: 'mover', estado: 'concluida' },
-      { em: '2', de: atualDe, para: atualPara, tipo: 'mover', estado: 'iniciada' },
       { em: '2', de: atualDe, para: atualPara, tipo: 'mover', estado: 'falhou' }
     ])
 
     // A abortada some, então quem sobra é a movimentação anterior.
     expect(await ultimaMovimentacao(raiz)).toMatchObject({ de: antigaDe, para: antigaPara })
-  })
-})
-
-describe('contem', () => {
-  it('reconhece pai, filho e a própria pasta', () => {
-    expect(contem(join(base, 'a'), join(base, 'a', 'b'))).toBe(true)
-    expect(contem(join(base, 'a'), join(base, 'a'))).toBe(true)
-    expect(contem(join(base, 'a'), join(base, 'b'))).toBe(false)
-    expect(contem(join(base, 'a', 'b'), join(base, 'a'))).toBe(false)
   })
 })
 
@@ -182,27 +167,42 @@ describe('moverPasta', () => {
     await expect(moverPasta(raiz, origem, join(origem, 'dentro'))).rejects.toThrow(/dentro da pasta/)
   })
 
-  it('registra a intenção antes de mover e a confirmação depois', async () => {
+  it('deixa um registro por movimentação, e não um por etapa', async () => {
     const origem = await criarProjeto(fora, 'erp')
     await moverPasta(raiz, origem, join(raiz, 'erp'))
 
-    const log = await fs.readFile(join(caminhoMeta(raiz), 'movimentos.log'), 'utf8')
-    const linhas = log.trim().split('\n').map((l) => JSON.parse(l))
+    // O desfecho atualiza o registro no lugar: assim o fim da lista é sempre uma
+    // operação, nunca a confirmação de uma.
+    expect(await lerHistorico()).toEqual([
+      { raiz, em: expect.any(String), de: origem, para: join(raiz, 'erp'), tipo: 'mover', estado: 'concluida' }
+    ])
+  })
 
-    // Duas linhas por movimentação: a primeira é gravada antes de o disco mudar,
-    // e é ela que garante que dá para desfazer mesmo se a segunda se perder.
-    expect(linhas).toHaveLength(2)
-    expect(linhas[0]).toMatchObject({ de: origem, para: join(raiz, 'erp'), tipo: 'mover', estado: 'iniciada' })
-    expect(linhas[1]).toMatchObject({ de: origem, para: join(raiz, 'erp'), tipo: 'mover', estado: 'concluida' })
+  it('grava a intenção antes de tocar no disco', async () => {
+    const origem = await criarProjeto(fora, 'erp')
+    let estadoNaHora: string | undefined
+
+    // Espia o exato instante em que a pasta vai mudar de lugar e pergunta o que
+    // já está gravado: é esta ordem que garante que dá para desfazer mesmo se o
+    // app morrer no meio da movimentação.
+    const renomear = fs.rename
+    vi.spyOn(fs, 'rename').mockImplementation((async (...args: unknown[]) => {
+      if (String(args[0]) === origem) estadoNaHora = (await lerHistorico()).at(-1)?.estado
+      return renomear.apply(fs, args as never)
+    }) as never)
+
+    await moverPasta(raiz, origem, join(raiz, 'erp'))
+
+    expect(estadoNaHora).toBe('iniciada')
   })
 
   it('não move nada quando não consegue registrar a intenção', async () => {
     const origem = await criarProjeto(fora, 'erp')
 
-    // `.organizador` ocupado por um arquivo: gravar o log é impossível, e a
-    // regra é não mover o que não pode ser registrado.
-    await fs.rm(caminhoMeta(raiz), { recursive: true, force: true })
-    await fs.writeFile(caminhoMeta(raiz), 'nao sou uma pasta\n')
+    // Sem lugar para gravar o histórico: a regra é não mover o que não pode ser
+    // registrado, porque seria mover sem poder desfazer.
+    userData.pasta = join(base, 'ocupado')
+    await fs.writeFile(userData.pasta, 'nao sou uma pasta\n')
 
     await expect(moverPasta(raiz, origem, join(raiz, 'erp'))).rejects.toThrow()
 
@@ -400,7 +400,7 @@ describe('moverVarias', () => {
     expect(relatorio.movidas).toHaveLength(1)
   })
 
-  it('registra cada movimentação no log, uma por uma', async () => {
+  it('registra cada movimentação no histórico, uma por uma', async () => {
     for (const nome of ['um', 'dois']) await criarProjeto(fora, nome)
 
     await moverVarias(raiz, [join(fora, 'um'), join(fora, 'dois')])
@@ -434,13 +434,5 @@ describe('moverVarias', () => {
 describe('ultimaMovimentacao', () => {
   it('devolve null quando não há histórico', async () => {
     expect(await ultimaMovimentacao(raiz)).toBeNull()
-  })
-
-  it('ignora linha corrompida no log sem perder o resto', async () => {
-    const origem = await criarProjeto(fora, 'erp')
-    await moverPasta(raiz, origem, join(raiz, 'erp'))
-    await fs.appendFile(join(caminhoMeta(raiz), 'movimentos.log'), '{ isso nao e json\n', 'utf8')
-
-    expect(await ultimaMovimentacao(raiz)).toMatchObject({ para: join(raiz, 'erp') })
   })
 })
