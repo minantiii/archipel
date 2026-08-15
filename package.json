@@ -1,6 +1,6 @@
 {
   "name": "archipel",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Um mapa navegável para pastas de projeto: cada pasta vira uma ilha, com tags e pontes entre elas",
   "main": "./out/main/index.js",
   "author": "Gabriel Minantti",
