@@ -61,7 +61,7 @@ const cacheDoPath = new Map<string, boolean>()
  * executável inexistente falha lá dentro sem o `spawn` reclamar, então não dá
  * para descobrir isso pelo evento `error` como se fazia antes.
  */
-async function existeNoPath(exe: string): Promise<boolean> {
+export async function existeNoPath(exe: string): Promise<boolean> {
   const emCache = cacheDoPath.get(exe)
   if (emCache !== undefined) return emCache
 

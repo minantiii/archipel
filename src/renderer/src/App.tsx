@@ -4,7 +4,16 @@ import DetailsPanel from './components/DetailsPanel'
 import DivisorLateral, { LARGURA_PADRAO, limitarLargura } from './components/DivisorLateral'
 import Palco from './components/Palco'
 import Configuracoes from './components/Configuracoes'
-import { IconeConexao, IconeConfiguracoes, IconeRecarregar } from './components/Icones'
+import {
+  IconeConexao,
+  IconeConfiguracoes,
+  IconeRecarregar,
+  IconeTerminal
+} from './components/Icones'
+import PainelTerminal, {
+  ALTURA_MINIMA_TERMINAL,
+  ALTURA_PADRAO_TERMINAL
+} from './components/PainelTerminal'
 import Sidebar from './components/Sidebar'
 import { useStore } from './state/store'
 
@@ -21,6 +30,12 @@ interface EstadoMenu {
 /** Preferências de layout ficam no localStorage: são da máquina, não do mapa. */
 const CHAVE_LARGURA = 'organizador:largura-lateral'
 const CHAVE_LATERAL = 'organizador:lateral-visivel'
+const CHAVE_ALTURA_TERMINAL = 'archipel:altura-terminal'
+
+function alturaTerminalSalva(): number {
+  const salvo = Number(localStorage.getItem(CHAVE_ALTURA_TERMINAL))
+  return Number.isFinite(salvo) && salvo >= ALTURA_MINIMA_TERMINAL ? salvo : ALTURA_PADRAO_TERMINAL
+}
 
 function larguraSalva(): number {
   const salvo = Number(localStorage.getItem(CHAVE_LARGURA))
@@ -28,10 +43,7 @@ function larguraSalva(): number {
 }
 
 function normalizar(texto: string): string {
-  return texto
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
+  return texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 }
 
 /**
@@ -85,11 +97,15 @@ export default function App(): React.JSX.Element {
     desconectar,
     salvarMeta,
     reordenar,
-    renomear
+    renomear,
+    terminalVisivel,
+    alternarTerminal,
+    abrirTerminalEmbutido
   } = useStore()
 
   const [menu, setMenu] = useState<EstadoMenu | null>(null)
   const [configAberta, setConfigAberta] = useState(false)
+  const [alturaTerminal, setAlturaTerminal] = useState(alturaTerminalSalva)
   const [larguraLateral, setLarguraLateral] = useState(larguraSalva)
   const [lateralVisivel, setLateralVisivel] = useState(
     () => localStorage.getItem(CHAVE_LATERAL) !== 'nao'
@@ -117,6 +133,10 @@ export default function App(): React.JSX.Element {
   useEffect(() => {
     localStorage.setItem(CHAVE_LATERAL, lateralVisivel ? 'sim' : 'nao')
   }, [lateralVisivel])
+
+  useEffect(() => {
+    localStorage.setItem(CHAVE_ALTURA_TERMINAL, String(alturaTerminal))
+  }, [alturaTerminal])
 
   // A janela anuncia qual mapa está aberto: com dois abertos, a barra de tarefas
   // é o único lugar que diz qual é qual.
@@ -184,6 +204,13 @@ export default function App(): React.JSX.Element {
 
       // Os atalhos com Ctrl vêm antes do filtro de digitação lá embaixo, mas
       // cada um decide por si se convive com um campo de texto em foco.
+      // Ctrl+' (a tecla à esquerda do 1) mostra e esconde o terminal, de qualquer lugar.
+      if (evento.ctrlKey && !evento.altKey && evento.code === 'Backquote') {
+        evento.preventDefault()
+        alternarTerminal()
+        return
+      }
+
       if (evento.ctrlKey && !evento.altKey && (evento.key === 'b' || evento.key === 'B')) {
         evento.preventDefault()
         setLateralVisivel((visivel) => !visivel)
@@ -219,7 +246,14 @@ export default function App(): React.JSX.Element {
 
     window.addEventListener('keydown', aoTeclar)
     return () => window.removeEventListener('keydown', aoTeclar)
-  }, [alternarModoConexao, selecionar, movimentacao, carregando, desfazerMovimentacao])
+  }, [
+    alternarModoConexao,
+    selecionar,
+    movimentacao,
+    carregando,
+    desfazerMovimentacao,
+    alternarTerminal
+  ])
 
   /** Conjunto de ilhas que sobrevive à busca e ao filtro de tag. */
   const destacados = useMemo(() => {
@@ -258,8 +292,18 @@ export default function App(): React.JSX.Element {
   const itensDaIlha = (id: string): ItemMenu[] => [
     { rotulo: t.abrirNoExplorer, acao: () => void abrirNoExplorer(id) },
     { rotulo: t.abrirNoVsCode, acao: () => void executarAcao('vscode', id) },
-    { rotulo: t.abrirTerminalAqui, acao: () => void executarAcao('terminal', id) },
-    { rotulo: t.copiarCaminho, acao: () => void executarAcao('copiarCaminho', id) },
+    {
+      rotulo: t.abrirNoTerminalEmbutido,
+      acao: () => abrirTerminalEmbutido(id)
+    },
+    {
+      rotulo: t.abrirTerminalAqui,
+      acao: () => void executarAcao('terminal', id)
+    },
+    {
+      rotulo: t.copiarCaminho,
+      acao: () => void executarAcao('copiarCaminho', id)
+    },
     {
       rotulo: t.soltarPosicao,
       acao: () => void fixar(id, null),
@@ -274,8 +318,7 @@ export default function App(): React.JSX.Element {
     {
       rotulo: t.apagarPasta,
       acao: () => void apagarPasta(id),
-      perigoso: true,
-      desabilitado: ilhaDoMenu?.ausente
+      perigoso: true
     }
   ]
 
@@ -379,7 +422,20 @@ export default function App(): React.JSX.Element {
             <IconeRecarregar />
           </button>
           <button
-            className={configAberta ? 'botao-icone botao-configuracoes ativo' : 'botao-icone botao-configuracoes'}
+            className={terminalVisivel ? 'botao-icone ativo' : 'botao-icone'}
+            onClick={alternarTerminal}
+            title={t.terminalAlternar}
+            aria-label={t.terminalAlternar}
+            aria-pressed={terminalVisivel}
+          >
+            <IconeTerminal />
+          </button>
+          <button
+            className={
+              configAberta
+                ? 'botao-icone botao-configuracoes ativo'
+                : 'botao-icone botao-configuracoes'
+            }
             onClick={() => setConfigAberta((aberta) => !aberta)}
             title={t.configuracoes}
             aria-label={t.configuracoes}
@@ -443,40 +499,50 @@ export default function App(): React.JSX.Element {
           </>
         )}
 
-        {!mapa ? (
-          // Ainda lendo o disco: palco em branco. Antes caía no ramo de baixo e
-          // todo início de sessão piscava "o mapa está vazio" antes de o mapa chegar.
-          <div className="palco" />
-        ) : mapa.ilhas.length > 0 ? (
-          <Palco
-            mapa={mapa}
-            selecionado={selecionado}
-            destacados={destacados}
-            conectandoDe={conectandoDe}
-            onClicar={(id) => {
-              if (modoConexao) return void clicarEmModoConexao(id)
-              selecionar(id)
-            }}
-            // Só o clique liga pontas. O botão direito e o soltar da lista também
-            // "selecionam", e no modo conexão isso escolhia uma ponta — ou criava
-            // uma ponte — só por abrir o menu de uma ilha.
-            onSelecionar={(id) => {
-              if (id === null || !modoConexao) selecionar(id)
-            }}
-            onAbrir={(id) => void abrirNoExplorer(id)}
-            onFixar={(id, pos) => void fixar(id, pos)}
-            onMenu={(id, x, y) => setMenu({ id, x, y })}
-            onMenuDoFundo={(x, y, pos) => setMenu({ id: null, x, y, pos })}
+        {/* Mapa em cima, terminal embaixo: os dois cabem entre a lista e o painel
+            da ilha, e encolhem ou crescem junto com eles. */}
+        <div className="coluna-mapa">
+          {!mapa ? (
+            // Ainda lendo o disco: palco em branco. Antes caía no ramo de baixo e
+            // todo início de sessão piscava "o mapa está vazio" antes de o mapa chegar.
+            <div className="palco" />
+          ) : mapa.ilhas.length > 0 ? (
+            <Palco
+              mapa={mapa}
+              selecionado={selecionado}
+              destacados={destacados}
+              conectandoDe={conectandoDe}
+              onClicar={(id) => {
+                if (modoConexao) return void clicarEmModoConexao(id)
+                selecionar(id)
+              }}
+              // Só o clique liga pontas. O botão direito e o soltar da lista também
+              // "selecionam", e no modo conexão isso escolhia uma ponta — ou criava
+              // uma ponte — só por abrir o menu de uma ilha.
+              onSelecionar={(id) => {
+                if (id === null || !modoConexao) selecionar(id)
+              }}
+              onAbrir={(id) => void abrirNoExplorer(id)}
+              onFixar={(id, pos) => void fixar(id, pos)}
+              onMenu={(id, x, y) => setMenu({ id, x, y })}
+              onMenuDoFundo={(x, y, pos) => setMenu({ id: null, x, y, pos })}
+            />
+          ) : (
+            <div className="palco palco-vazio">
+              <p>
+                {t.mapaVazioTitulo}
+                <br />
+                {t.mapaVazioTexto} <code>{raiz}</code>.
+              </p>
+            </div>
+          )}
+          <PainelTerminal
+            visivel={terminalVisivel}
+            altura={alturaTerminal}
+            onAltura={setAlturaTerminal}
+            recuoDireita={ilhaSelecionada ? 320 : 0}
           />
-        ) : (
-          <div className="palco palco-vazio">
-            <p>
-              {t.mapaVazioTitulo}
-              <br />
-              {t.mapaVazioTexto} <code>{raiz}</code>.
-            </p>
-          </div>
-        )}
+        </div>
 
         {mapa && ilhaSelecionada && (
           <DetailsPanel
@@ -488,6 +554,7 @@ export default function App(): React.JSX.Element {
             onSelecionar={selecionar}
             onAcao={(acao) => void executarAcao(acao, ilhaSelecionada.id)}
             onRemover={() => void removerDoMapa(ilhaSelecionada.id)}
+            onExcluir={() => void apagarPasta(ilhaSelecionada.id)}
             onRenomear={(nome) => void renomear(ilhaSelecionada.id, nome)}
             batizar={batizando === ilhaSelecionada.id}
             onBatizada={batizada}

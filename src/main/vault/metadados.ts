@@ -1,6 +1,7 @@
 import { promises as fs } from 'node:fs'
+import { join } from 'node:path'
 import type { MetaPatch } from '@shared/types'
-import { caminhoArquivoMeta } from './estrutura'
+import { caminhoArquivoMeta, caminhoPastas } from './estrutura'
 import { escreverAtomico } from './io'
 import {
   adicionarLigacao,
@@ -100,4 +101,39 @@ export async function desconectar(raiz: string, origem: string, destino: string)
  */
 export async function esquecerMeta(raiz: string, id: string): Promise<void> {
   await fs.rm(caminhoArquivoMeta(raiz, id), { force: true }).catch(() => undefined)
+  await apagarLigacoesPara(raiz, id)
+}
+
+/**
+ * Tira de todos os outros `.md` as `[[ligações]]` que apontavam para `id`.
+ *
+ * Sem isto a ilha removida não sumia de verdade: cada ponte que chegava nela
+ * fazia o mapa desenhar uma ilha fantasma ("ausente") no lugar. Uma linha
+ * "Pontes:" que fica vazia vai embora junto.
+ */
+async function apagarLigacoesPara(raiz: string, id: string): Promise<void> {
+  const dir = caminhoPastas(raiz)
+  let arquivos: string[]
+  try {
+    arquivos = (await fs.readdir(dir)).filter((nome) => nome.toLowerCase().endsWith('.md'))
+  } catch {
+    return
+  }
+
+  for (const nome of arquivos) {
+    const caminho = join(dir, nome)
+    try {
+      const arquivo = parsear(await fs.readFile(caminho, 'utf8'))
+      if (!arquivo.links.includes(id)) continue
+      const corpo = removerLigacao(arquivo.corpo, id)
+        .split('\n')
+        .filter((linha) => !/^\s*pontes:\s*[,;·\s]*$/i.test(linha))
+        .join('\n')
+      if (corpo !== arquivo.corpo) {
+        await escreverAtomico(caminho, serializar({ meta: arquivo.meta, corpo }))
+      }
+    } catch {
+      // Um arquivo ilegível não pode impedir os outros de serem limpos.
+    }
+  }
 }

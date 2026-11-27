@@ -27,6 +27,13 @@ interface Estado {
   idioma: Idioma
   /** Tema visual, escolhido em Configurações. Preferência da máquina, não do mapa. */
   tema: TemaId
+  /** Painel do terminal embutido aberto embaixo do mapa. */
+  terminalVisivel: boolean
+  /**
+   * Pedido de aba nova no terminal: a ilha onde abrir (ou `null` = raiz). O
+   * `vez` muda a cada pedido, para dois pedidos iguais seguidos não se fundirem.
+   */
+  pedidoTerminal: { ilha: string | null; vez: number } | null
   /** Os textos do idioma em vigor, prontos para usar na tela. */
   t: Textos
   /** Quando ligado, clicar de uma ilha a outro cria a conexão em vez de selecionar. */
@@ -73,6 +80,8 @@ interface Estado {
   /** Pega do main o idioma da sessão — o que foi escolhido no instalador. */
   carregarIdioma: () => Promise<void>
   definirTema: (tema: TemaId) => void
+  alternarTerminal: () => void
+  abrirTerminalEmbutido: (ilha: string | null) => void
   alternarModoConexao: () => void
   /** Trata o clique numa ilha quando o modo conexão está ligado. */
   clicarEmModoConexao: (id: string) => Promise<void>
@@ -217,6 +226,8 @@ export const useStore = create<Estado>((set, get) => ({
   idioma: 'pt',
   t: textosDe('pt'),
   tema: temaSalvo(),
+  terminalVisivel: false,
+  pedidoTerminal: null,
   modoConexao: false,
   conectandoDe: null,
   batizando: null,
@@ -372,6 +383,14 @@ export const useStore = create<Estado>((set, get) => ({
     aplicarTema(tema)
     set({ tema })
   },
+
+  alternarTerminal: () => set({ terminalVisivel: !get().terminalVisivel }),
+
+  abrirTerminalEmbutido: (ilha) =>
+    set({
+      terminalVisivel: true,
+      pedidoTerminal: { ilha, vez: (get().pedidoTerminal?.vez ?? 0) + 1 }
+    }),
 
   alternarModoConexao: () =>
     set({ modoConexao: !get().modoConexao, conectandoDe: null, selecionado: null }),

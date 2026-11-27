@@ -1169,6 +1169,13 @@ export class MotorDoMapa {
     this.largura = largura
     this.altura = altura
     this.app.renderer.resize(largura, altura)
+    // Mudar o tamanho do canvas apaga o que estava desenhado. Esperar o próximo
+    // quadro deixava um quadro vazio a cada passo do arraste da lista ou do
+    // terminal: o fundo piscava e as ilhas sumiam. Pinta já, na mesma hora.
+    this.mundo.position.set(this.camera.x, this.camera.y)
+    this.mundo.scale.set(this.camera.k)
+    this.moverOndas(performance.now())
+    this.app.render()
     this.agendar()
   }
 

@@ -431,12 +431,12 @@ export function registrarIpc(): void {
       tentar(async () => {
         const raiz = await raizObrigatoria()
         const ilha = await acharIlha(raiz, id)
-        if (ilha.ausente) throw new Error(t().pastaJaNaoEstaNoDisco(id))
 
         const autorizado = await confirmar(janelaDe(evento), {
           titulo: t().apagarTitulo,
           mensagem: t().apagarPergunta(id),
-          detalhe: t().apagarDetalhe(ilha.caminho),
+          // Ilha fantasma (só citada por uma ponte) não tem pasta para a Lixeira.
+          detalhe: ilha.ausente ? t().apagarDetalheAusente : t().apagarDetalhe(ilha.caminho),
           botao: t().apagarBotao,
           // Único lugar do app que remove uma pasta a pedido: o botão padrão é
           // "Cancelar" de propósito.
@@ -447,7 +447,7 @@ export function registrarIpc(): void {
         await enfileirar(async () => {
           // Lixeira, e não `fs.rm`: apagar de verdade não teria volta, e este é
           // um comando que a pessoa dá com o mouse, num menu, sem pensar muito.
-          await shell.trashItem(ilha.caminho)
+          if (!ilha.ausente) await shell.trashItem(ilha.caminho)
           await esquecerMeta(raiz, id)
         })
 

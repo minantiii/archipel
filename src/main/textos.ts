@@ -33,13 +33,18 @@ const PT = {
   cancelar: 'Cancelar',
   mover: 'Mover',
 
-  apagarTitulo: 'Apagar pasta',
-  apagarPergunta: (id: string) => `Apagar "${id}" e todo o conteúdo dela?`,
+  apagarTitulo: 'Excluir ilha',
+  apagarPergunta: (id: string) => `Excluir a ilha "${id}"?`,
   apagarDetalhe: (caminho: string) =>
-    `Vai para a Lixeira:\n${caminho}\n\n` +
-    'Nada é destruído de imediato — a pasta vai para a Lixeira do sistema e dá para ' +
-    'restaurar por lá. As tags e o diário ficam guardados em .organizador/removidos.',
-  apagarBotao: 'Apagar',
+    `A pasta vai para a Lixeira:
+${caminho}
+
+` +
+    'A ilha some do mapa sem deixar rastro: tags, diário e as pontes que chegavam ' +
+    'nela são apagados. A pasta dá para restaurar pela Lixeira do sistema.',
+  apagarDetalheAusente:
+    'A pasta já não existe no disco. A ilha some do mapa junto com as pontes que chegavam nela.',
+  apagarBotao: 'Excluir',
 
   tirarDoMapaTitulo: 'Tirar pasta do mapa',
   tirarDoMapaPergunta: (id: string) => `Tirar "${id}" do mapa?`,
@@ -75,12 +80,17 @@ const EN: typeof PT = {
   cancelar: 'Cancel',
   mover: 'Move',
 
-  apagarTitulo: 'Delete folder',
-  apagarPergunta: (id: string) => `Delete "${id}" and everything inside it?`,
+  apagarTitulo: 'Delete island',
+  apagarPergunta: (id: string) => `Delete the island "${id}"?`,
   apagarDetalhe: (caminho: string) =>
-    `Goes to the Recycle Bin:\n${caminho}\n\n` +
-    'Nothing is destroyed right away — the folder goes to the system Recycle Bin and can be ' +
-    'restored from there. Tags and journal are kept in .organizador/removidos.',
+    `The folder goes to the Recycle Bin:
+${caminho}
+
+` +
+    'The island leaves the map without a trace: tags, journal and the bridges ' +
+    'pointing to it are removed. The folder can be restored from the Recycle Bin.',
+  apagarDetalheAusente:
+    'The folder no longer exists on disk. The island leaves the map along with the bridges pointing to it.',
   apagarBotao: 'Delete',
 
   tirarDoMapaTitulo: 'Remove folder from the map',

@@ -6,6 +6,11 @@ directories:
 files:
   - out/**
   - package.json
+# O terminal embutido roda pelo `node-pty`, que traz `.node`, `.dll` e `.exe`
+# (conpty, winpty). Executável e DLL não carregam de dentro do `.asar`, então a
+# pasta inteira vai solta ao lado dele.
+asarUnpack:
+  - node_modules/node-pty/**
 # De onde o app procura atualização. O repositório é público, então o updater
 # baixa sem token nenhum embutido no instalador.
 publish:

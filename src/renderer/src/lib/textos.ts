@@ -83,7 +83,7 @@ const PT = {
   abrirNoVsCode: 'Abrir no VS Code',
   abrirTerminalAqui: 'Abrir terminal aqui',
   soltarPosicao: 'Soltar posição fixada',
-  apagarPasta: 'Apagar pasta…',
+  apagarPasta: 'Excluir ilha…',
   criarPastaAqui: 'Criar pasta aqui',
   adicionarExistente: 'Adicionar pasta existente…',
   abrirTerminalNoMapa: 'Abrir terminal no mapa',
@@ -114,20 +114,33 @@ const PT = {
     `Archipel ${versao} foi baixado e será instalado quando você fechar o app.`,
   carregando: 'Carregando…',
 
+  // Terminal embutido
+  terminalAlternar: "Terminal (Ctrl+')",
+  terminalTitulo: 'Terminal',
+  terminalNovaAba: 'Nova aba (na ilha selecionada)',
+  terminalFecharAba: 'Fechar aba',
+  terminalEsconder: "Esconder o terminal (Ctrl+')",
+  abrirNoTerminalEmbutido: 'Abrir no terminal do Archipel',
+
   // Configurações
   configuracoes: 'Configurações',
   tema: 'Tema',
   temas: {
     padrao: { nome: 'Padrão', descricao: 'Cinza escuro, como sempre foi.' },
-    kanagawa: { nome: 'Kanagawa', descricao: 'Gravura japonesa: papel creme e azul da onda.' },
-    'kanagawa-noite': { nome: 'Kanagawa noite', descricao: 'A mesma gravura, num mar azul-noite.' }
+    kanagawa: {
+      nome: 'Kanagawa',
+      descricao: 'Gravura japonesa: papel creme e azul da onda.'
+    },
+    'kanagawa-noite': {
+      nome: 'Kanagawa noite',
+      descricao: 'A mesma gravura, num mar azul-noite.'
+    }
   }
 }
 
 const EN: typeof PT = {
   bemVindoTitulo: 'Archipel',
-  bemVindoTexto:
-    'Choose a folder to be your map. The project folders inside it become islands.',
+  bemVindoTexto: 'Choose a folder to be your map. The project folders inside it become islands.',
   escolherMapa: 'Choose the map folder',
 
   trocarDeMapa: 'Switch map',
@@ -188,7 +201,7 @@ const EN: typeof PT = {
   abrirNoVsCode: 'Open in VS Code',
   abrirTerminalAqui: 'Open terminal here',
   soltarPosicao: 'Release pinned position',
-  apagarPasta: 'Delete folder…',
+  apagarPasta: 'Delete island…',
   criarPastaAqui: 'Create folder here',
   adicionarExistente: 'Add existing folder…',
   abrirTerminalNoMapa: 'Open terminal at the map',
@@ -216,12 +229,25 @@ const EN: typeof PT = {
     `Archipel ${versao} has been downloaded and will install when you close the app.`,
   carregando: 'Loading…',
 
+  terminalAlternar: "Terminal (Ctrl+')",
+  terminalTitulo: 'Terminal',
+  terminalNovaAba: 'New tab (in the selected island)',
+  terminalFecharAba: 'Close tab',
+  terminalEsconder: "Hide the terminal (Ctrl+')",
+  abrirNoTerminalEmbutido: 'Open in the Archipel terminal',
+
   configuracoes: 'Settings',
   tema: 'Theme',
   temas: {
     padrao: { nome: 'Default', descricao: 'Dark gray, as it has always been.' },
-    kanagawa: { nome: 'Kanagawa', descricao: 'Japanese woodblock: cream paper and wave blue.' },
-    'kanagawa-noite': { nome: 'Kanagawa night', descricao: 'The same print, on a night-blue sea.' }
+    kanagawa: {
+      nome: 'Kanagawa',
+      descricao: 'Japanese woodblock: cream paper and wave blue.'
+    },
+    'kanagawa-noite': {
+      nome: 'Kanagawa night',
+      descricao: 'The same print, on a night-blue sea.'
+    }
   }
 }
 

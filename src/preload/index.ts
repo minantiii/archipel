@@ -82,6 +82,26 @@ const api: OrganizadorApi = {
       ipcRenderer.invoke(CANAIS.abrirTerminalNoMapa),
     copiarCaminho: (id: string): Promise<Resultado<null>> =>
       ipcRenderer.invoke(CANAIS.abrirCopiarCaminho, id)
+  },
+
+  terminal: {
+    abrir: (ilha: string | null, colunas: number, linhas: number) =>
+      ipcRenderer.invoke(CANAIS.terminalAbrir, ilha, colunas, linhas),
+    escrever: (id: number, dados: string): void =>
+      ipcRenderer.send(CANAIS.terminalEscrever, id, dados),
+    redimensionar: (id: number, colunas: number, linhas: number): void =>
+      ipcRenderer.send(CANAIS.terminalRedimensionar, id, colunas, linhas),
+    fechar: (id: number): void => ipcRenderer.send(CANAIS.terminalFechar, id),
+    aoReceber: (callback: (id: number, dados: string) => void): (() => void) => {
+      const ouvinte = (_evento: unknown, id: number, dados: string): void => callback(id, dados)
+      ipcRenderer.on(CANAIS.terminalDados, ouvinte)
+      return () => ipcRenderer.removeListener(CANAIS.terminalDados, ouvinte)
+    },
+    aoSair: (callback: (id: number, codigo: number) => void): (() => void) => {
+      const ouvinte = (_evento: unknown, id: number, codigo: number): void => callback(id, codigo)
+      ipcRenderer.on(CANAIS.terminalSaiu, ouvinte)
+      return () => ipcRenderer.removeListener(CANAIS.terminalSaiu, ouvinte)
+    }
   }
 }
 

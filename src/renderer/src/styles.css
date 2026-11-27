@@ -1657,3 +1657,191 @@ body.redimensionando {
   opacity: 0.22;
   filter: brightness(1.7) saturate(0.8);
 }
+
+/* --- Terminal embutido ------------------------------------------------------ */
+
+/* Mapa em cima, terminal embaixo. A coluna ocupa o que sobra entre a lista e o
+   painel da ilha, então o terminal encolhe e cresce junto com eles. */
+.coluna-mapa {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.painel-terminal {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--fundo-painel);
+  border-top: 1px solid var(--borda);
+  transition: margin-right var(--medio) var(--mola);
+  animation: surgir var(--medio) var(--mola) both;
+}
+
+/* Alça na borda de cima: arrasta para mudar a altura. */
+.alca-terminal {
+  position: absolute;
+  top: -4px;
+  left: 0;
+  right: 0;
+  height: 8px;
+  cursor: row-resize;
+  z-index: 3;
+}
+
+.alca-terminal::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 3px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--destaque), var(--secundario));
+  opacity: 0;
+  transition: opacity var(--rapido) var(--suave);
+}
+
+.alca-terminal:hover::after,
+body.redimensionando-terminal .alca-terminal::after {
+  opacity: 1;
+}
+
+body.redimensionando-terminal {
+  cursor: row-resize;
+  user-select: none;
+}
+
+.terminal-abas {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  height: 32px;
+  padding: 0 6px;
+  border-bottom: 1px solid var(--borda);
+  overflow-x: auto;
+}
+
+.terminal-aba {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 200px;
+  padding: 0 6px 0 12px;
+  font-size: 12px;
+  color: var(--texto-suave);
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    color var(--rapido) var(--suave),
+    border-color var(--rapido) var(--suave);
+}
+
+.terminal-aba span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.terminal-aba:hover {
+  color: var(--texto);
+}
+
+.terminal-aba.ativa {
+  color: var(--texto);
+  border-bottom-color: var(--destaque-suave);
+}
+
+.terminal-abas button {
+  padding: 0 7px;
+  font-size: 14px;
+  line-height: 1;
+  background: transparent;
+  border: none;
+  color: var(--texto-suave);
+}
+
+.terminal-abas button:hover:not(:disabled) {
+  color: var(--texto);
+  background: var(--fundo-elevado);
+  transform: none;
+}
+
+.terminal-fechar-aba {
+  opacity: 0;
+  height: 20px;
+}
+
+.terminal-aba:hover .terminal-fechar-aba,
+.terminal-aba.ativa .terminal-fechar-aba {
+  opacity: 1;
+}
+
+.terminal-nova-aba {
+  align-self: center;
+  height: 24px;
+  font-size: 16px !important;
+}
+
+.terminal-esconder {
+  align-self: center;
+  height: 24px;
+  margin-left: auto;
+}
+
+.terminal-corpo {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* O xterm desenha num canvas e precisa de uma caixa com medida exata: a folga
+   fica no padding da sessão, nunca dentro do terminal. */
+.terminal-sessao {
+  position: absolute;
+  inset: 0;
+  padding: 6px 4px 4px 12px;
+}
+
+.terminal-sessao .xterm {
+  height: 100%;
+}
+
+.terminal-sessao .xterm-viewport {
+  background: transparent !important;
+}
+
+.terminal-sessao .xterm-viewport::-webkit-scrollbar-thumb {
+  background: var(--borda-forte);
+  background-clip: content-box;
+}
+
+/* Nos temas de gravura, o painel é papel como o resto, e a aba ativa ganha o
+   vermelho do carimbo. */
+:root[data-tema='kanagawa'] .painel-terminal {
+  background: #e8dabc var(--papel);
+  border-top: 2px solid var(--borda-forte);
+}
+
+:root[data-tema='kanagawa-noite'] .painel-terminal {
+  background: #0c1524 var(--papel);
+  border-top: 2px solid var(--borda-forte);
+}
+
+:root[data-tema^='kanagawa'] .terminal-aba.ativa {
+  border-bottom-color: var(--secundario);
+}
+
+:root[data-tema^='kanagawa'] .terminal-aba {
+  font-family: var(--fonte-gravura);
+  font-size: 13px;
+}
+
+:root[data-tema^='kanagawa'] .alca-terminal::after {
+  background: var(--secundario);
+}

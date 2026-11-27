@@ -78,3 +78,14 @@ export function IconeConfiguracoes({ tamanho = 16 }: Props): React.JSX.Element {
     </svg>
   )
 }
+
+/** Terminal: o sinal de prompt e o cursor. */
+export function IconeTerminal({ tamanho = 16 }: Props): React.JSX.Element {
+  return (
+    <svg width={tamanho} height={tamanho} viewBox="0 0 24 24" aria-hidden="true" {...comuns}>
+      <rect x="3" y="4.5" width="18" height="15" rx="2" />
+      <polyline points="7 10 10 12.5 7 15" />
+      <line x1="12.5" y1="15" x2="17" y2="15" />
+    </svg>
+  )
+}

@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { caminhoArquivoMeta, caminhoPastas } from './estrutura'
 import { parsear } from './markdown'
-import { marcarAcesso, salvarMeta } from './metadados'
+import { esquecerMeta, marcarAcesso, salvarMeta } from './metadados'
 
 let raiz: string
 
@@ -138,5 +138,27 @@ describe('marcarAcesso', () => {
     expect(arquivo.meta.tags).toEqual(['escrita-a-mao'])
     expect(arquivo.corpo).toContain('Descrição escrita no editor.')
     expect(arquivo.meta.ultimoAcessoEm).not.toBeNull()
+  })
+})
+
+describe('esquecerMeta', () => {
+  const escrever = (id: string, corpo: string): Promise<void> =>
+    fs.writeFile(caminhoArquivoMeta(raiz, id), `---\ntags: []\n---\n\n${corpo}\n`, 'utf8')
+
+  it('apaga o .md e as pontes que chegavam na ilha, sem deixar fantasma', async () => {
+    await escrever('velha', 'Pontes: [[erp]]')
+    await escrever('erp', 'Descrição do ERP.\n\nPontes: [[velha]] [[frontend]]')
+    await escrever('frontend', 'Pontes: [[velha]]')
+
+    await esquecerMeta(raiz, 'velha')
+
+    await expect(fs.access(caminhoArquivoMeta(raiz, 'velha'))).rejects.toThrow()
+    const erp = await ler('erp')
+    expect(erp.links).toEqual(['frontend'])
+    expect(erp.corpo).toContain('Descrição do ERP.')
+    // A linha "Pontes:" que ficou vazia vai embora junto.
+    const frontend = await ler('frontend')
+    expect(frontend.links).toEqual([])
+    expect(frontend.corpo).not.toMatch(/pontes/i)
   })
 })

@@ -28,6 +28,8 @@ interface Props {
   onSelecionar: (id: string) => void
   onAcao: (acao: AcaoDeAbrir) => void
   onRemover: () => void
+  /** Exclui a ilha: pasta para a Lixeira e nenhum rastro no mapa. */
+  onExcluir: () => void
   onRenomear: (novoNome: string) => void
   /** `true` quando a pasta acabou de ser criada e ainda se chama "Nova pasta". */
   batizar?: boolean
@@ -43,6 +45,7 @@ export default function DetailsPanel({
   onSelecionar,
   onAcao,
   onRemover,
+  onExcluir,
   onRenomear,
   batizar,
   onBatizada
@@ -157,6 +160,9 @@ export default function DetailsPanel({
           <button onClick={() => onAcao('copiarCaminho')}>{t.copiarCaminho}</button>
           <button className="perigoso" onClick={onRemover} disabled={ilha.ausente}>
             {t.tirarDoMapa}
+          </button>
+          <button className="perigoso" onClick={onExcluir}>
+            {t.apagarPasta}
           </button>
         </div>
       </section>

@@ -127,6 +127,104 @@ export const PALETAS: Record<TemaId, PaletaDoMapa> = {
   }
 }
 
+/** Cores do terminal embutido (formato do xterm.js), uma paleta por tema. */
+export interface CoresDoTerminal {
+  background: string
+  foreground: string
+  cursor: string
+  cursorAccent: string
+  selectionBackground: string
+  black: string
+  red: string
+  green: string
+  yellow: string
+  blue: string
+  magenta: string
+  cyan: string
+  white: string
+  brightBlack: string
+  brightRed: string
+  brightGreen: string
+  brightYellow: string
+  brightBlue: string
+  brightMagenta: string
+  brightCyan: string
+  brightWhite: string
+}
+
+export const TERMINAIS: Record<TemaId, CoresDoTerminal> = {
+  padrao: {
+    background: '#1b1b1f',
+    foreground: '#e6e6ea',
+    cursor: '#68a0e3',
+    cursorAccent: '#1b1b1f',
+    selectionBackground: 'rgba(37, 112, 204, 0.4)',
+    black: '#2a2a31',
+    red: '#ff6b81',
+    green: '#7bd88f',
+    yellow: '#ffb454',
+    blue: '#68a0e3',
+    magenta: '#c792ea',
+    cyan: '#22d3ee',
+    white: '#d8d8e0',
+    brightBlack: '#6b6b78',
+    brightRed: '#ff8fa0',
+    brightGreen: '#9be6ab',
+    brightYellow: '#ffc97e',
+    brightBlue: '#8ab8ee',
+    brightMagenta: '#dab0f2',
+    brightCyan: '#67e3f5',
+    brightWhite: '#ffffff'
+  },
+  // Papel e nanquim: o texto é a tinta escura, e as cores são as tintas da gravura.
+  kanagawa: {
+    background: '#e8dabc',
+    foreground: '#1d2633',
+    cursor: '#b8402e',
+    cursorAccent: '#e8dabc',
+    selectionBackground: 'rgba(61, 107, 153, 0.3)',
+    black: '#1d2633',
+    red: '#b8402e',
+    green: '#5c6b33',
+    yellow: '#9a6a1c',
+    blue: '#1f3b63',
+    magenta: '#8a3f5c',
+    cyan: '#2f6a80',
+    white: '#6b6352',
+    brightBlack: '#6b6352',
+    brightRed: '#c8553f',
+    brightGreen: '#6f7d45',
+    brightYellow: '#b07e2c',
+    brightBlue: '#3d6b99',
+    brightMagenta: '#a35a70',
+    brightCyan: '#3f8098',
+    brightWhite: '#1d2633'
+  },
+  'kanagawa-noite': {
+    background: '#0c1524',
+    foreground: '#ece2cc',
+    cursor: '#e0644c',
+    cursorAccent: '#0c1524',
+    selectionBackground: 'rgba(159, 194, 222, 0.28)',
+    black: '#1a2b47',
+    red: '#e0644c',
+    green: '#9aae68',
+    yellow: '#e2b45a',
+    blue: '#6f9ccc',
+    magenta: '#cf8aa0',
+    cyan: '#7fb8c9',
+    white: '#d9e4ea',
+    brightBlack: '#5a6b82',
+    brightRed: '#ec8571',
+    brightGreen: '#b3c487',
+    brightYellow: '#ecc77f',
+    brightBlue: '#9fc2de',
+    brightMagenta: '#e0a8ba',
+    brightCyan: '#a3d0dc',
+    brightWhite: '#f7efdd'
+  }
+}
+
 const CHAVE = 'archipel:tema'
 
 export function temaSalvo(): TemaId {

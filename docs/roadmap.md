@@ -42,6 +42,20 @@ Respondê-las define a ordem das fases.
 - [x] Botões de janela do Windows mudam de cor com o tema
 - [x] Tirada a dica de rodapé do mapa
 
+### Terminal embutido e exclusão de ilha — v0.1.4 (27/11/2026)
+
+- [x] Terminal embutido no rodapé do mapa (xterm.js + `node-pty`, PowerShell 7 quando houver)
+  - Código: `src/main/terminal.ts` (shell) e `src/renderer/src/components/PainelTerminal.tsx` (painel)
+  - `Ctrl+'` ou botão no topo mostra/esconde; abas com `+`; arrastar a borda muda a altura
+  - Nasce na pasta da ilha selecionada (ou na raiz); menu da ilha tem "Abrir no terminal do Archipel"
+  - Ocupa só o espaço entre a lista e o painel da ilha; cores seguem o tema
+  - `node-pty` vai fora do `.asar` (`asarUnpack` no `electron-builder.yml`)
+- [x] Mapa não pisca nem some mais ao redimensionar a lista ou o terminal
+- [x] "Excluir ilha…" (menu e painel): pasta para a Lixeira e nenhum rastro: apaga o `.md`
+      e as `[[pontes]]` que chegavam nela; também exclui ilha fantasma
+- [x] Dica: `claude -r` na lista tem a opção de mostrar as sessões de todas as pastas
+      (não copiar sessões entre pastas: a retomada roda na pasta errada)
+
 ### Mapa de pastas (27/11/2026)
 
 - [x] Pastas da área de trabalho trazidas para o `mapa-trabalho`
@@ -54,6 +68,7 @@ Respondê-las define a ordem das fases.
 
 - [ ] Testar no app instalado o que não foi testado automaticamente: arrastar
       para fixar, Alt+clique, duplo clique, menu do botão direito, soltar da lista
+- [x] Publicar a versão 0.1.4 (terminal embutido, excluir ilha, sem piscar)
 - [x] Commit das mudanças (sem coautoria; PR só com título)
 - [x] Publicar a versão 0.1.3 no GitHub, para a atualização automática levar o mapa novo
 - [x] Copiar as memórias do Claude presas nos caminhos antigos `Desktop\...`
@@ -72,10 +87,11 @@ Memória automática entre sessões. Repositório: <https://github.com/akitaonra
 
 ## Fase 2: o Archipel abre as sessões
 
-- [ ] **2.1 Abrir terminal / Abrir Claude aqui**: duas opções no menu da ilha
-  - [ ] "Abrir terminal aqui": Windows Terminal na pasta da ilha
-  - [ ] "Abrir Claude aqui": terminal na pasta, já rodando `claude`
-  - [ ] Plano B quando o Windows Terminal não estiver instalado
+- [ ] **2.1 Abrir terminal / Abrir Claude aqui**: opções no menu da ilha
+  - [x] "Abrir terminal aqui": Windows Terminal na pasta da ilha (já existia)
+  - [x] "Abrir no terminal do Archipel": aba do terminal embutido na pasta da ilha
+  - [ ] "Abrir Claude aqui": aba do terminal embutido na pasta, já rodando `claude`
+  - [x] Plano B quando o Windows Terminal não estiver instalado (cai no PowerShell)
 - [ ] **2.2 Editor de `CLAUDE.md` na ilha**
   - [ ] Aba no painel de detalhes mostrando o `CLAUDE.md` da pasta
   - [ ] Criar o arquivo quando ele não existir
@@ -133,7 +149,7 @@ Agentes separados das ilhas (não é "cada ilha um agente"). Referência:
 
 Decisões antes de começar:
 - [ ] Como o agente aparece no mapa (ex.: barcos que navegam até a ilha onde trabalham)
-- [ ] O agente roda dentro do Archipel (terminal embutido, `node-pty`) ou no Windows Terminal
+- [ ] O agente roda dentro do Archipel (o terminal embutido já existe) ou no Windows Terminal
 - [ ] Como o celular alcança o PC: só no Wi-Fi local, ou de fora (precisa de túnel e aval da empresa)
 
 - [ ] **6.1 Time de agentes conversando entre si**
@@ -151,8 +167,8 @@ Decisões antes de começar:
 
 ## Ideias soltas
 
-- [ ] Terminal embutido de verdade (xterm.js + node-pty). Só se a fase 2.1 não
-      bastar: o módulo nativo complica o instalador e a atualização automática.
+- [ ] Terminal: com uma ilha selecionada, abrir o terminal ir sempre para a aba dela
+      (por ora o Gabriel preferiu deixar como está)
 
 ## Fora do plano (de propósito)
 

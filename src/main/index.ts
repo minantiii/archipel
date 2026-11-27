@@ -4,6 +4,7 @@ import { cuidarDeAtualizacoes } from './atualizacao'
 import { carregarIdioma } from './textos'
 import { registrarIpc } from './ipc'
 import { pararDeObservar } from './vault/watcher'
+import { fecharTerminais, registrarTerminal } from './terminal'
 
 /**
  * Altura da barra de título, casada com a `.topo` do CSS.
@@ -107,6 +108,7 @@ if (!app.requestSingleInstanceLock()) {
     // janela e o atalho como se fossem dois programas diferentes na barra.
     app.setAppUserModelId('com.archipel.app')
     registrarIpc()
+    registrarTerminal()
     criarJanela()
     cuidarDeAtualizacoes()
 
@@ -121,6 +123,7 @@ if (!app.requestSingleInstanceLock()) {
 
   // Solta os handles do watcher antes de sair, senão o processo pode ficar preso.
   app.on('will-quit', () => {
+    fecharTerminais()
     void pararDeObservar()
   })
 }

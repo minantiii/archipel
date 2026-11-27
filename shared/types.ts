@@ -178,6 +178,18 @@ export interface OrganizadorApi {
     terminalNoMapa(): Promise<Resultado<null>>
     copiarCaminho(id: string): Promise<Resultado<null>>
   }
+
+  /** Terminal embutido: shells de verdade no painel embaixo do mapa. */
+  terminal: {
+    /** Abre um shell na pasta da ilha (ou na raiz, com `null`). */
+    abrir(ilha: string | null, colunas: number, linhas: number): Promise<{ id: number; pasta: string }>
+    escrever(id: number, dados: string): void
+    redimensionar(id: number, colunas: number, linhas: number): void
+    fechar(id: number): void
+    /** Saída de todos os shells; quem ouve filtra pelo id. Devolve o unsubscribe. */
+    aoReceber(callback: (id: number, dados: string) => void): () => void
+    aoSair(callback: (id: number, codigo: number) => void): () => void
+  }
 }
 
 /** Nomes dos canais de IPC. Usados pelo preload e pelo main — nunca pelo renderer. */
@@ -185,6 +197,13 @@ export const CANAIS = {
   sistemaVersoes: 'sistema:versoes',
   sistemaIdioma: 'sistema:idioma',
   sistemaCorDoTopo: 'sistema:cor-do-topo',
+
+  terminalAbrir: 'terminal:abrir',
+  terminalEscrever: 'terminal:escrever',
+  terminalRedimensionar: 'terminal:redimensionar',
+  terminalFechar: 'terminal:fechar',
+  terminalDados: 'terminal:dados',
+  terminalSaiu: 'terminal:saiu',
 
   mapaObterRaiz: 'mapa:obter-raiz',
   mapaEscolherRaiz: 'mapa:escolher-raiz',
