@@ -87,10 +87,9 @@ Memória automática entre sessões. Repositório: <https://github.com/akitaonra
 
 ## Fase 2: o Archipel abre as sessões
 
-- [ ] **2.1 Abrir terminal / Abrir Claude aqui**: opções no menu da ilha
+- [x] **2.1 Abrir terminal**: opções no menu da ilha
   - [x] "Abrir terminal aqui": Windows Terminal na pasta da ilha (já existia)
   - [x] "Abrir no terminal do Archipel": aba do terminal embutido na pasta da ilha
-  - [ ] "Abrir Claude aqui": aba do terminal embutido na pasta, já rodando `claude`
   - [x] Plano B quando o Windows Terminal não estiver instalado (cai no PowerShell)
 - [ ] **2.2 Editor de `CLAUDE.md` na ilha**
   - [ ] Aba no painel de detalhes mostrando o `CLAUDE.md` da pasta
@@ -174,3 +173,4 @@ Decisões antes de começar:
 
 - Plugins/marketplace e troca automática de provedor de IA (só usamos o Claude).
 - Cada ilha ser um agente (descartado: as ilhas continuam sendo só pastas).
+- "Abrir Claude aqui" (aba já rodando `claude`): descartado pelo Gabriel.
