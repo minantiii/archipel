@@ -19,6 +19,10 @@ export const ALTURA_MINIMA_TERMINAL = 110
 interface Aba {
   chave: number
   ilha: string | null
+  /** Aba de sessão de um agente: roda o motor dele em vez do shell. */
+  agente: string | null
+  /** Sessão do motor a retomar (continuar uma conversa delegada). */
+  sessao: string | null
   titulo: string
 }
 
@@ -52,9 +56,14 @@ export default function PainelTerminal({
   const abasAtuais = useRef(abas)
   abasAtuais.current = abas
 
-  const novaAba = (ilha: string | null): void => {
+  const novaAba = (
+    ilha: string | null,
+    agente: string | null = null,
+    sessao: string | null = null
+  ): void => {
     const chave = proximaChave.current++
-    const lista = [...abasAtuais.current, { chave, ilha, titulo: ilha ?? '…' }]
+    const titulo = agente ? `⛵ ${agente}${sessao ? ' ↺' : ''}` : (ilha ?? '…')
+    const lista = [...abasAtuais.current, { chave, ilha, agente, sessao, titulo }]
     abasAtuais.current = lista
     setAbas(lista)
     setAtiva(chave)
@@ -73,7 +82,7 @@ export default function PainelTerminal({
   useEffect(() => {
     if (!pedido || pedido.vez === ultimoPedido.current) return
     ultimoPedido.current = pedido.vez
-    novaAba(pedido.ilha)
+    novaAba(pedido.ilha, pedido.agente ?? null, pedido.sessao ?? null)
   }, [pedido])
 
   // Abriu o painel sem aba nenhuma: nasce uma na ilha selecionada, ou na raiz.
@@ -153,9 +162,12 @@ export default function PainelTerminal({
           <Sessao
             key={aba.chave}
             ilha={aba.ilha}
+            agente={aba.agente}
+            sessao={aba.sessao}
             ativa={visivel && aba.chave === ativa}
             tema={tema}
             onTitulo={(titulo) =>
+              !aba.agente &&
               setAbas((atuais) => atuais.map((a) => (a.chave === aba.chave ? { ...a, titulo } : a)))
             }
             onSaiu={() => fecharAba(aba.chave)}
@@ -168,13 +180,15 @@ export default function PainelTerminal({
 
 interface PropsSessao {
   ilha: string | null
+  agente: string | null
+  sessao: string | null
   ativa: boolean
   tema: TemaId
   onTitulo: (titulo: string) => void
   onSaiu: () => void
 }
 
-function Sessao({ ilha, ativa, tema, onTitulo, onSaiu }: PropsSessao): React.JSX.Element {
+function Sessao({ ilha, agente, sessao, ativa, tema, onTitulo, onSaiu }: PropsSessao): React.JSX.Element {
   const caixa = useRef<HTMLDivElement | null>(null)
   const terminal = useRef<Terminal | null>(null)
   const ajuste = useRef<FitAddon | null>(null)
@@ -230,7 +244,10 @@ function Sessao({ ilha, ativa, tema, onTitulo, onSaiu }: PropsSessao): React.JSX
       if (id === idPty.current) callbacks.current.onSaiu()
     })
 
-    void window.api.terminal.abrir(ilha, term.cols, term.rows).then(({ id, pasta }) => {
+    // A aba de agente conta como "em sessão" no barco enquanto existir.
+    if (agente) useStore.getState().marcarAgenteAberto(agente, true)
+
+    void window.api.terminal.abrir(ilha, term.cols, term.rows, agente, sessao).then(({ id, pasta }) => {
       if (encerrado) {
         window.api.terminal.fechar(id)
         return
@@ -241,6 +258,9 @@ function Sessao({ ilha, ativa, tema, onTitulo, onSaiu }: PropsSessao): React.JSX
       callbacks.current.onTitulo(pasta.split(/[\\/]/).filter(Boolean).pop() ?? pasta)
       term.onData((dados) => window.api.terminal.escrever(id, dados))
       term.onResize(({ cols, rows }) => window.api.terminal.redimensionar(id, cols, rows))
+    }).catch((erro: unknown) => {
+      // Agente apagado ou motor que não abriu: o motivo fica escrito na aba.
+      term.write(`\r\n${erro instanceof Error ? erro.message : String(erro)}\r\n`)
     })
 
     const observador = new ResizeObserver(() => {
@@ -250,6 +270,7 @@ function Sessao({ ilha, ativa, tema, onTitulo, onSaiu }: PropsSessao): React.JSX
 
     return () => {
       encerrado = true
+      if (agente) useStore.getState().marcarAgenteAberto(agente, false)
       observador.disconnect()
       pararDeOuvir()
       pararDeOuvirSaida()

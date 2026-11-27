@@ -3,7 +3,7 @@
 Plano vivo: marque `[x]` quando um item ficar pronto e testado. Ideia nova entra
 em **Ideias soltas** até ganhar lugar numa fase.
 
-Última revisão: 27/11/2026.
+Última revisão: 27/11/2026 (fase 6.1 começada).
 
 ---
 
@@ -20,6 +20,10 @@ Respondê-las define a ordem das fases.
 ---
 
 ## Feito
+
+### Ilhas e nomes maiores (27/11/2026)
+
+- [x] Ilhas cerca de 25% maiores e nomes maiores (13,5 px na tela, eram 11)
 
 ### Mapa reescrito sem React (27/11/2026)
 
@@ -147,14 +151,31 @@ Agentes separados das ilhas (não é "cada ilha um agente"). Referência:
 <https://openbot.run/>. Licença PolyForm Noncommercial: copiar ideias, nunca código.
 
 Decisões antes de começar:
-- [ ] Como o agente aparece no mapa (ex.: barcos que navegam até a ilha onde trabalham)
-- [ ] O agente roda dentro do Archipel (o terminal embutido já existe) ou no Windows Terminal
+- [x] Como o agente aparece no mapa: barcos que navegam até a ilha onde trabalham (27/11/2026)
+- [x] O agente roda dentro do Archipel, numa aba do terminal embutido (27/11/2026)
 - [ ] Como o celular alcança o PC: só no Wi-Fi local, ou de fora (precisa de túnel e aval da empresa)
 
-- [ ] **6.1 Time de agentes conversando entre si**
-  - [ ] Criar agente com nome, função e pasta de trabalho
-  - [ ] Um agente passa tarefa e arquivos para outro
-  - [ ] Ver a conversa entre eles e poder parar ou reassumir
+- [ ] **6.1 Time de agentes conversando entre si** (primeira parte em 27/11/2026)
+  - [x] Criar agente com nome, função, motor e pasta de trabalho
+    - Arquivos em `.organizador/agentes/<nome>.md`; código em `src/main/agentes/`
+    - Motores: Claude (`claude`) e Gemini (`agy`), com modelo opcional
+    - Painel "Agentes" (botão do barco no topo) e "Novo agente nesta ilha" no menu da ilha
+  - [x] "Abrir sessão": aba do terminal embutido rodando o motor na pasta do agente,
+        já sabendo quem é, quem são os colegas e como passar tarefa
+  - [x] Um agente passa tarefa para outro e espera a resposta (`delegar.cmd`)
+    - Claude ↔ Gemini nos dois sentidos; pedidos seguidos continuam a mesma conversa
+    - Cada pedido vira `.organizador/agentes/conversas/<data>-<de>-<para>.md`
+    - Limite de 3 delegações em cadeia
+  - [x] Barcos no mapa: cor da vela pelo estado (parado, em sessão, trabalhando,
+        terminou, falhou); rota tracejada entre quem pediu e quem está fazendo
+  - [x] Ver as conversas no painel (tarefa e resposta), filtrando pelo agente
+  - [x] Parar uma tarefa em andamento pelo painel (mata o `delegar` e o motor; confere
+        que o processo é mesmo do Archipel antes)
+  - [x] Tarefa cujo processo morreu sozinho é encerrada como falha (o barco não fica
+        âmbar para sempre)
+  - [x] Continuar uma conversa delegada numa aba (`claude --resume` / `agy --conversation`)
+  - [x] Notificação do Windows quando uma tarefa termina com a janela fora de foco
+  - [ ] Testar no app instalado: criar agente, abrir sessão, delegar, parar, continuar
 - [ ] **6.2 Rotinas automáticas**
   - [ ] Agendar uma tarefa para um agente (diária, semanal, horário)
   - [ ] Rodar mesmo com a janela fechada (Archipel na bandeja)
@@ -171,6 +192,7 @@ Decisões antes de começar:
 
 ## Fora do plano (de propósito)
 
-- Plugins/marketplace e troca automática de provedor de IA (só usamos o Claude).
+- Plugins/marketplace e troca automática de provedor de IA (usamos Claude e Gemini, cada
+  agente com o motor escolhido à mão).
 - Cada ilha ser um agente (descartado: as ilhas continuam sendo só pastas).
 - "Abrir Claude aqui" (aba já rodando `claude`): descartado pelo Gabriel.

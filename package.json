@@ -41,5 +41,10 @@
     "vite": "^7.1.0",
     "vitest": "^3.2.4",
     "zustand": "^5.0.14"
+  },
+  "allowScripts": {
+    "node-pty@1.1.0": true,
+    "esbuild@0.25.12": true,
+    "esbuild@0.28.1": true
   }
 }

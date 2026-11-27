@@ -4,7 +4,10 @@ import DetailsPanel from './components/DetailsPanel'
 import DivisorLateral, { LARGURA_PADRAO, limitarLargura } from './components/DivisorLateral'
 import Palco from './components/Palco'
 import Configuracoes from './components/Configuracoes'
+import PainelAgentes from './components/PainelAgentes'
+import { barcosDoTime, rotasDoTime } from './lib/agentes'
 import {
+  IconeBarco,
   IconeConexao,
   IconeConfiguracoes,
   IconeRecarregar,
@@ -100,7 +103,13 @@ export default function App(): React.JSX.Element {
     renomear,
     terminalVisivel,
     alternarTerminal,
-    abrirTerminalEmbutido
+    abrirTerminalEmbutido,
+    time,
+    agentesAbertos,
+    painelAgentes,
+    alternarPainelAgentes,
+    focarAgente,
+    novoAgenteNaIlha
   } = useStore()
 
   const [menu, setMenu] = useState<EstadoMenu | null>(null)
@@ -155,6 +164,66 @@ export default function App(): React.JSX.Element {
       void useStore.getState().recarregar({ silencioso: true })
     })
   }, [raiz])
+
+  // O time de agentes do mapa: carrega ao abrir o mapa e acompanha o disco, que
+  // é por onde o `delegar` avisa que uma tarefa começou ou terminou.
+  useEffect(() => {
+    if (!raiz) return
+    void useStore.getState().carregarTime()
+    return window.api.agentes.aoMudar(() => void useStore.getState().carregarTime())
+  }, [raiz])
+
+  // Os barcos dizem "terminou" só por um tempo: o relógio faz eles voltarem a
+  // "parado" sem precisar de uma mudança no disco.
+  const [relogio, setRelogio] = useState(() => Date.now())
+  useEffect(() => {
+    const id = setInterval(() => setRelogio(Date.now()), 30_000)
+    return () => clearInterval(id)
+  }, [])
+
+  // Escolher uma ilha troca o painel do time pelo painel da ilha.
+  useEffect(() => {
+    if (selecionado && useStore.getState().painelAgentes) useStore.setState({ painelAgentes: false })
+  }, [selecionado])
+
+  const barcos = useMemo(
+    () =>
+      barcosDoTime(
+        time,
+        new Set(agentesAbertos),
+        new Set(mapa?.ilhas.filter((i) => !i.ausente).map((i) => i.id) ?? []),
+        relogio
+      ),
+    [time, agentesAbertos, mapa, relogio]
+  )
+  const rotas = useMemo(() => rotasDoTime(time), [time])
+
+  /*
+   * Notificação do Windows quando uma tarefa delegada termina, se a janela não
+   * está em foco: dá para deixar o time trabalhando e ir fazer outra coisa.
+   * Compara com o retrato anterior para avisar só da transição, uma vez.
+   */
+  const statusAnteriores = useRef<Map<string, string> | null>(null)
+  useEffect(() => {
+    if (!time) return
+    const anteriores = statusAnteriores.current
+    statusAnteriores.current = new Map(time.conversas.map((c) => [c.id, c.status]))
+    // Primeira leitura do mapa: o que já estava terminado não é novidade.
+    if (!anteriores || document.hasFocus() || typeof Notification === 'undefined') return
+    for (const c of time.conversas) {
+      if (anteriores.get(c.id) !== 'trabalhando' || c.status === 'trabalhando') continue
+      const titulo =
+        c.status === 'terminou' ? t.notificacaoTerminou(c.para) : t.notificacaoFalhou(c.para)
+      const aviso = new Notification(titulo, {
+        body: (c.resposta || c.tarefa).slice(0, 180),
+        silent: false
+      })
+      aviso.onclick = () => {
+        window.focus()
+        focarAgente(c.para)
+      }
+    }
+  }, [time, t, focarAgente])
 
   /*
    * Versão nova baixada e esperando.
@@ -301,6 +370,11 @@ export default function App(): React.JSX.Element {
       acao: () => void executarAcao('terminal', id)
     },
     {
+      rotulo: t.agenteNovoNaIlha,
+      acao: () => novoAgenteNaIlha(id),
+      desabilitado: ilhaDoMenu?.ausente
+    },
+    {
       rotulo: t.copiarCaminho,
       acao: () => void executarAcao('copiarCaminho', id)
     },
@@ -422,6 +496,15 @@ export default function App(): React.JSX.Element {
             <IconeRecarregar />
           </button>
           <button
+            className={painelAgentes ? 'botao-icone ativo' : 'botao-icone'}
+            onClick={alternarPainelAgentes}
+            title={t.agentesAlternar}
+            aria-label={t.agentesAlternar}
+            aria-pressed={painelAgentes}
+          >
+            <IconeBarco />
+          </button>
+          <button
             className={terminalVisivel ? 'botao-icone ativo' : 'botao-icone'}
             onClick={alternarTerminal}
             title={t.terminalAlternar}
@@ -512,6 +595,9 @@ export default function App(): React.JSX.Element {
               selecionado={selecionado}
               destacados={destacados}
               conectandoDe={conectandoDe}
+              barcos={barcos}
+              rotas={rotas}
+              onBarco={(nome) => focarAgente(nome)}
               onClicar={(id) => {
                 if (modoConexao) return void clicarEmModoConexao(id)
                 selecionar(id)
@@ -540,11 +626,15 @@ export default function App(): React.JSX.Element {
             visivel={terminalVisivel}
             altura={alturaTerminal}
             onAltura={setAlturaTerminal}
-            recuoDireita={ilhaSelecionada ? 320 : 0}
+            recuoDireita={ilhaSelecionada || painelAgentes ? 320 : 0}
           />
         </div>
 
-        {mapa && ilhaSelecionada && (
+        {mapa && painelAgentes && (
+          <PainelAgentes mapa={mapa} onFechar={alternarPainelAgentes} />
+        )}
+
+        {mapa && ilhaSelecionada && !painelAgentes && (
           <DetailsPanel
             ilha={ilhaSelecionada}
             mapa={mapa}

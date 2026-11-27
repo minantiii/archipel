@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import { CANAIS } from '@shared/types'
 import type {
+  Agente,
   Idioma,
   Mapa,
   MetaPatch,
@@ -9,6 +10,7 @@ import type {
   PastaCriada,
   Posicao,
   Resultado,
+  Time,
   Versoes
 } from '@shared/types'
 
@@ -85,8 +87,13 @@ const api: OrganizadorApi = {
   },
 
   terminal: {
-    abrir: (ilha: string | null, colunas: number, linhas: number) =>
-      ipcRenderer.invoke(CANAIS.terminalAbrir, ilha, colunas, linhas),
+    abrir: (
+      ilha: string | null,
+      colunas: number,
+      linhas: number,
+      agente?: string | null,
+      sessao?: string | null
+    ) => ipcRenderer.invoke(CANAIS.terminalAbrir, ilha, colunas, linhas, agente ?? null, sessao ?? null),
     escrever: (id: number, dados: string): void =>
       ipcRenderer.send(CANAIS.terminalEscrever, id, dados),
     redimensionar: (id: number, colunas: number, linhas: number): void =>
@@ -101,6 +108,21 @@ const api: OrganizadorApi = {
       const ouvinte = (_evento: unknown, id: number, codigo: number): void => callback(id, codigo)
       ipcRenderer.on(CANAIS.terminalSaiu, ouvinte)
       return () => ipcRenderer.removeListener(CANAIS.terminalSaiu, ouvinte)
+    }
+  },
+
+  agentes: {
+    carregar: (): Promise<Time> => ipcRenderer.invoke(CANAIS.agentesCarregar),
+    salvar: (agente: Agente, nomeAntigo: string | null): Promise<Resultado<Time>> =>
+      ipcRenderer.invoke(CANAIS.agentesSalvar, agente, nomeAntigo),
+    apagar: (nome: string): Promise<Resultado<Time>> =>
+      ipcRenderer.invoke(CANAIS.agentesApagar, nome),
+    parar: (conversa: string): Promise<Resultado<Time>> =>
+      ipcRenderer.invoke(CANAIS.agentesParar, conversa),
+    aoMudar: (callback: () => void): (() => void) => {
+      const ouvinte = (): void => callback()
+      ipcRenderer.on(CANAIS.agentesMudou, ouvinte)
+      return () => ipcRenderer.removeListener(CANAIS.agentesMudou, ouvinte)
     }
   }
 }

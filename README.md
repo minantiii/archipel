@@ -142,6 +142,49 @@ arrastar dentro de uma lista filtrada daria uma ordem sem sentido.
 
 Renomear atualiza as ligações de todos os outros arquivos — as pontes não quebram.
 
+## Time de agentes
+
+Agentes são um Claude ou um Gemini com nome, função e uma ilha onde trabalham. Eles
+não são as ilhas: um agente mora em `.organizador/agentes/<nome>.md` e aparece no mapa como
+um **barco** ancorado perto da ilha dele.
+
+```markdown
+---
+motor: gemini                     # claude | gemini (pelo `agy`)
+modelo: gemini-3.8-flash-medium   # opcional
+ilha: kronos-spec                 # opcional; sem ilha = raiz do mapa
+---
+
+Revisa o código que o time escreve e aponta bugs, com arquivo e linha.
+```
+
+- O botão do barco no topo abre o painel do time: criar, editar, apagar e **Abrir sessão**,
+  que abre uma aba do terminal embutido rodando o motor na pasta do agente. Ele já sabe quem
+  é, quem são os colegas e como passar uma tarefa adiante.
+- Um agente passa tarefa a outro pelo `delegar.cmd` (o caminho exato vai no prompt dele,
+  porque o Claude Code não aprova comando cujo programa vem de variável):
+
+  ```bash
+  "C:\Users\voce\AppData\Roaming\archipel\delegar.cmd" --para revisor <<'FIM'
+  Revise src/main/terminal.ts e aponte bugs.
+  FIM
+  ```
+
+  Quem recebe roda sem janela (`claude -p` ou `agy -p`), na pasta dele, e a resposta volta
+  na saída do comando. Pedidos seguidos ao mesmo colega continuam a mesma conversa;
+  `--nova` começa outra. Funciona de qualquer aba do terminal do Archipel (de lá, quem pede
+  aparece como "você"). O Claude chamado assim pode editar arquivos, mas não roda comandos
+  sem alguém para aprovar.
+- Cada pedido vira `.organizador/agentes/conversas/<data>-<de>-<para>.md`, com a tarefa e a
+  resposta. É por esse arquivo que o mapa vê o barco ficar âmbar ("trabalhando"), a rota
+  tracejada entre os dois e, no fim, a vela verde (ou vermelha, se falhou).
+- O `delegar` roda pelo próprio executável do Archipel em modo Node
+  (`ELECTRON_RUN_AS_NODE`), então não precisa de Node instalado. O código está em
+  `src/main/agentes/`.
+
+Ao contrário do resto de `.organizador`, as conversas crescem com o uso: são o histórico
+do que o time fez. Apagar a pasta `conversas` não quebra nada.
+
 ## Arquitetura
 
 - **main** (Node) — dono exclusivo do filesystem; toda leitura, escrita e movimentação.

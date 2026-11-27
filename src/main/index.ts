@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { cuidarDeAtualizacoes } from './atualizacao'
 import { carregarIdioma } from './textos'
 import { registrarIpc } from './ipc'
+import { pararObservadorDeAgentes, registrarAgentes } from './agentes/ipc'
 import { pararDeObservar } from './vault/watcher'
 import { fecharTerminais, registrarTerminal } from './terminal'
 
@@ -109,6 +110,7 @@ if (!app.requestSingleInstanceLock()) {
     app.setAppUserModelId('com.archipel.app')
     registrarIpc()
     registrarTerminal()
+    registrarAgentes()
     criarJanela()
     cuidarDeAtualizacoes()
 
@@ -125,5 +127,6 @@ if (!app.requestSingleInstanceLock()) {
   app.on('will-quit', () => {
     fecharTerminais()
     void pararDeObservar()
+    void pararObservadorDeAgentes()
   })
 }

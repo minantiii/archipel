@@ -1,5 +1,14 @@
 import { create } from 'zustand'
-import type { Idioma, Mapa, MetaPatch, Movimentacao, Posicao, Resultado } from '@shared/types'
+import type {
+  Agente,
+  Idioma,
+  Mapa,
+  MetaPatch,
+  Movimentacao,
+  Posicao,
+  Resultado,
+  Time
+} from '@shared/types'
 import { textosDe, type Textos } from '../lib/textos'
 import { aplicarTema, temaSalvo, type TemaId } from '../lib/tema'
 
@@ -33,7 +42,23 @@ interface Estado {
    * Pedido de aba nova no terminal: a ilha onde abrir (ou `null` = raiz). O
    * `vez` muda a cada pedido, para dois pedidos iguais seguidos não se fundirem.
    */
-  pedidoTerminal: { ilha: string | null; vez: number } | null
+  pedidoTerminal: {
+    ilha: string | null
+    vez: number
+    agente?: string | null
+    /** Com `agente`: a sessão do motor a retomar. */
+    sessao?: string | null
+  } | null
+
+  /** O time de agentes do mapa (`.organizador/agentes/`). */
+  time: Time | null
+  /** Agentes com uma aba de sessão aberta no terminal embutido. */
+  agentesAbertos: string[]
+  painelAgentes: boolean
+  /** Agente destacado no painel (clicado no barco). */
+  agenteEmFoco: string | null
+  /** Pedido para o painel abrir o formulário de agente novo já nesta ilha. */
+  novoAgente: { ilha: string | null; vez: number } | null
   /** Os textos do idioma em vigor, prontos para usar na tela. */
   t: Textos
   /** Quando ligado, clicar de uma ilha a outro cria a conexão em vez de selecionar. */
@@ -82,6 +107,18 @@ interface Estado {
   definirTema: (tema: TemaId) => void
   alternarTerminal: () => void
   abrirTerminalEmbutido: (ilha: string | null) => void
+  carregarTime: () => Promise<void>
+  /** Devolve `true` se gravou; o erro vai para a faixa de erro. */
+  salvarAgente: (agente: Agente, nomeAntigo: string | null) => Promise<boolean>
+  apagarAgente: (nome: string) => Promise<void>
+  /** Abre uma aba do terminal com a sessão do agente; com `sessao`, retoma aquela conversa. */
+  abrirSessaoDoAgente: (nome: string, sessao?: string | null) => void
+  /** Interrompe uma tarefa delegada em andamento. */
+  pararConversa: (id: string) => Promise<void>
+  marcarAgenteAberto: (nome: string, aberto: boolean) => void
+  alternarPainelAgentes: () => void
+  focarAgente: (nome: string | null) => void
+  novoAgenteNaIlha: (ilha: string | null) => void
   alternarModoConexao: () => void
   /** Trata o clique numa ilha quando o modo conexão está ligado. */
   clicarEmModoConexao: (id: string) => Promise<void>
@@ -228,6 +265,11 @@ export const useStore = create<Estado>((set, get) => ({
   tema: temaSalvo(),
   terminalVisivel: false,
   pedidoTerminal: null,
+  time: null,
+  agentesAbertos: [],
+  painelAgentes: false,
+  agenteEmFoco: null,
+  novoAgente: null,
   modoConexao: false,
   conectandoDe: null,
   batizando: null,
@@ -252,7 +294,16 @@ export const useStore = create<Estado>((set, get) => ({
       // Mapa novo, tela limpa: a busca, o filtro e a ponta de conexão eram do
       // mapa anterior. O `mapa: null` desmonta o palco, para o novo nascer com
       // câmera e posições próprias em vez de herdar as do antigo.
-      set({ raiz, mapa: null, selecionado: null, busca: '', filtroTag: null, conectandoDe: null })
+      set({
+        raiz,
+        mapa: null,
+        selecionado: null,
+        busca: '',
+        filtroTag: null,
+        conectandoDe: null,
+        time: null,
+        agenteEmFoco: null
+      })
       await get().recarregar()
     } catch (erro) {
       set({ erro: mensagemDoErro(erro) })
@@ -391,6 +442,77 @@ export const useStore = create<Estado>((set, get) => ({
       terminalVisivel: true,
       pedidoTerminal: { ilha, vez: (get().pedidoTerminal?.vez ?? 0) + 1 }
     }),
+
+  carregarTime: async () => {
+    try {
+      set({ time: await window.api.agentes.carregar() })
+    } catch (erro) {
+      set({ erro: mensagemDoErro(erro) })
+    }
+  },
+
+  salvarAgente: async (agente, nomeAntigo) => {
+    try {
+      const resultado = await window.api.agentes.salvar(agente, nomeAntigo)
+      if (!resultado.ok) {
+        set({ erro: resultado.erro })
+        return false
+      }
+      set({ time: resultado.dados, erro: null, agenteEmFoco: agente.nome })
+      return true
+    } catch (erro) {
+      set({ erro: mensagemDoErro(erro) })
+      return false
+    }
+  },
+
+  apagarAgente: async (nome) => {
+    try {
+      const resultado = await window.api.agentes.apagar(nome)
+      if (!resultado.ok) set({ erro: resultado.erro })
+      else set({ time: resultado.dados, agenteEmFoco: null })
+    } catch (erro) {
+      set({ erro: mensagemDoErro(erro) })
+    }
+  },
+
+  abrirSessaoDoAgente: (nome, sessao = null) =>
+    set({
+      terminalVisivel: true,
+      pedidoTerminal: {
+        ilha: null,
+        agente: nome,
+        sessao,
+        vez: (get().pedidoTerminal?.vez ?? 0) + 1
+      }
+    }),
+
+  pararConversa: async (id) => {
+    try {
+      const resultado = await window.api.agentes.parar(id)
+      if (!resultado.ok) set({ erro: resultado.erro })
+      else set({ time: resultado.dados })
+    } catch (erro) {
+      set({ erro: mensagemDoErro(erro) })
+    }
+  },
+
+  marcarAgenteAberto: (nome, aberto) => {
+    const atuais = get().agentesAbertos
+    // Duas abas do mesmo agente contam uma vez cada: fechar uma não apaga a outra.
+    if (aberto) set({ agentesAbertos: [...atuais, nome] })
+    else {
+      const i = atuais.indexOf(nome)
+      if (i >= 0) set({ agentesAbertos: [...atuais.slice(0, i), ...atuais.slice(i + 1)] })
+    }
+  },
+
+  alternarPainelAgentes: () => set({ painelAgentes: !get().painelAgentes }),
+
+  focarAgente: (nome) => set({ agenteEmFoco: nome, painelAgentes: nome !== null || get().painelAgentes }),
+
+  novoAgenteNaIlha: (ilha) =>
+    set({ painelAgentes: true, novoAgente: { ilha, vez: (get().novoAgente?.vez ?? 0) + 1 } }),
 
   alternarModoConexao: () =>
     set({ modoConexao: !get().modoConexao, conectandoDe: null, selecionado: null }),

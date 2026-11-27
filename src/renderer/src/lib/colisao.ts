@@ -20,7 +20,7 @@ export interface IlhaPosicionavel {
 
 export function raioDaIlha(ilha: IlhaPosicionavel): number {
   // Cresce com o número de pontes, mas satura: um hub não pode virar um planeta.
-  return 6 + Math.min(ilha.grau, 10) * 1.4
+  return 7.5 + Math.min(ilha.grau, 10) * 1.6
 }
 
 /**

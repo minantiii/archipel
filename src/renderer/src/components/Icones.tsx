@@ -89,3 +89,15 @@ export function IconeTerminal({ tamanho = 16 }: Props): React.JSX.Element {
     </svg>
   )
 }
+
+/** Barco a vela: o time de agentes, que navega entre as ilhas. */
+export function IconeBarco({ tamanho = 16 }: Props): React.JSX.Element {
+  return (
+    <svg width={tamanho} height={tamanho} viewBox="0 0 24 24" aria-hidden="true" {...comuns}>
+      <path d="M3 16h18l-2.5 4h-13z" />
+      <path d="M12 3v13" />
+      <path d="M12 4l6.5 10H12" />
+      <path d="M11 7l-4.5 7H11" />
+    </svg>
+  )
+}

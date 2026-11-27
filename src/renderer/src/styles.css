@@ -1845,3 +1845,255 @@ body.redimensionando-terminal {
 :root[data-tema^='kanagawa'] .alca-terminal::after {
   background: var(--secundario);
 }
+
+/* --- Time de agentes ------------------------------------------------------- */
+
+.conversa-acoes {
+  display: flex;
+  gap: 6px;
+  padding: 0 8px 8px;
+}
+
+.conversa-acoes button {
+  padding: 3px 9px;
+  font-size: 11.5px;
+}
+
+.conversa-acoes .perigoso {
+  color: var(--perigo);
+}
+
+.painel-agentes .vazio {
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.lista-agentes {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.agente {
+  padding: 7px 9px;
+  border: 1px solid transparent;
+  border-radius: var(--raio-p);
+  cursor: pointer;
+  transition: background var(--rapido) var(--suave), border-color var(--rapido) var(--suave);
+}
+
+.agente:hover {
+  background: var(--fundo-elevado);
+}
+
+.agente.em-foco {
+  background: var(--fundo-elevado);
+  border-color: var(--borda-forte);
+}
+
+.agente-linha {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+}
+
+.agente-motor {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--texto-suave);
+}
+
+.agente-detalhe {
+  margin: 2px 0 0 15px;
+  font-size: 11px;
+  color: var(--texto-suave);
+}
+
+.agente-acoes {
+  display: flex;
+  gap: 6px;
+  margin: 8px 0 2px 15px;
+}
+
+.agente-acoes button,
+.formulario-acoes button {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+.agente-acoes .perigoso {
+  color: var(--perigo);
+}
+
+.botao-novo-agente {
+  width: 100%;
+  font-size: 12px;
+}
+
+.selo-status {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--texto-suave);
+  opacity: 0.6;
+}
+
+.selo-status.status-sessao {
+  background: var(--destaque-suave);
+  opacity: 1;
+}
+
+.selo-status.status-trabalhando {
+  background: var(--atencao);
+  opacity: 1;
+  animation: pulsar-status 1.2s ease-in-out infinite;
+}
+
+.selo-status.status-terminou {
+  background: #51cf66;
+  opacity: 1;
+}
+
+.selo-status.status-falhou {
+  background: var(--perigo);
+  opacity: 1;
+}
+
+@keyframes pulsar-status {
+  50% {
+    transform: scale(1.5);
+    opacity: 0.55;
+  }
+}
+
+.formulario-agente {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.formulario-agente label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.formulario-agente label > span {
+  color: var(--texto-suave);
+}
+
+.formulario-agente small {
+  font-size: 10.5px;
+  color: var(--texto-suave);
+  opacity: 0.8;
+}
+
+.formulario-agente input,
+.formulario-agente select,
+.formulario-agente textarea {
+  padding: 6px 8px;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--texto);
+  background: var(--fundo-elevado);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-p);
+}
+
+.formulario-agente textarea {
+  resize: vertical;
+  line-height: 1.45;
+}
+
+.formulario-agente input:focus,
+.formulario-agente select:focus,
+.formulario-agente textarea:focus {
+  outline: none;
+  border-color: var(--destaque);
+}
+
+.formulario-acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.lista-conversas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.conversa {
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-p);
+  overflow: hidden;
+}
+
+.conversa-cabeca {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  padding: 6px 8px;
+  font-size: 12px;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+}
+
+.conversa-rota {
+  font-weight: 600;
+}
+
+.conversa-quando {
+  margin-left: auto;
+  font-size: 10.5px;
+  color: var(--texto-suave);
+}
+
+.conversa-previa {
+  margin: 0;
+  padding: 0 8px 7px 23px;
+  font-size: 11px;
+  color: var(--texto-suave);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.conversa-corpo {
+  padding: 0 8px 8px;
+}
+
+.conversa-corpo h4 {
+  margin: 6px 0 4px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--texto-suave);
+}
+
+.conversa-corpo pre {
+  margin: 0;
+  max-height: 260px;
+  overflow: auto;
+  padding: 6px 8px;
+  font-family: 'Cascadia Mono', Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: var(--fundo-elevado);
+  border-radius: var(--raio-p);
+}

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { Mapa } from '@shared/types'
+import type { Barco, Rota } from '../lib/agentes'
 import { MotorDoMapa, type AcoesDoPalco } from '../mapa/motor'
 import { useStore } from '../state/store'
 import { IconeEnquadrar } from './Icones'
@@ -21,6 +22,11 @@ interface Props {
   destacados: Set<string> | null
   /** Primeira ponta escolhida no modo conexão. */
   conectandoDe: string | null
+  /** Agentes do time, desenhados como barcos. */
+  barcos: Barco[]
+  /** Tarefas em andamento entre dois agentes. */
+  rotas: Rota[]
+  onBarco: (nome: string) => void
   /** Clique numa ilha. Separado da seleção porque no modo conexão ele liga pontas. */
   onClicar: (id: string) => void
   /** Seleção que não veio de um clique: menu, soltar da lista, clique no vazio. */
@@ -37,6 +43,9 @@ export default function Palco({
   selecionado,
   destacados,
   conectandoDe,
+  barcos,
+  rotas,
+  onBarco,
   onClicar,
   onSelecionar,
   onAbrir,
@@ -52,9 +61,18 @@ export default function Palco({
   // As ações e os dados mais recentes, lidos pelo motor quando ele fica pronto.
   // Num ref porque o motor nasce de forma assíncrona e não pode perder o que
   // chegou enquanto ele subia.
-  const acoes: AcoesDoPalco = { onClicar, onSelecionar, onAbrir, onFixar, onMenu, onMenuDoFundo }
-  const ultimo = useRef({ mapa, acoes, tema, estado: { selecionado, destacados, conectandoDe } })
-  ultimo.current = { mapa, acoes, tema, estado: { selecionado, destacados, conectandoDe } }
+  const acoes: AcoesDoPalco = {
+    onClicar,
+    onSelecionar,
+    onAbrir,
+    onFixar,
+    onMenu,
+    onMenuDoFundo,
+    onBarco
+  }
+  const estado = { selecionado, destacados, conectandoDe }
+  const ultimo = useRef({ mapa, acoes, tema, estado, barcos, rotas })
+  ultimo.current = { mapa, acoes, tema, estado, barcos, rotas }
 
   useEffect(() => {
     const elemento = container.current
@@ -72,6 +90,7 @@ export default function Palco({
       criado.definirTema(ultimo.current.tema)
       criado.definirEstado(ultimo.current.estado)
       criado.definirMapa(ultimo.current.mapa)
+      criado.definirBarcos(ultimo.current.barcos, ultimo.current.rotas)
     })
 
     return () => {
@@ -88,6 +107,10 @@ export default function Palco({
   useEffect(() => {
     motor.current?.definirTema(tema)
   }, [tema])
+
+  useEffect(() => {
+    motor.current?.definirBarcos(barcos, rotas)
+  }, [barcos, rotas])
 
   useEffect(() => {
     motor.current?.definirEstado({ selecionado, destacados, conectandoDe })

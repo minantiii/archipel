@@ -5,6 +5,8 @@ import type { Ilha, Mapa } from '@shared/types'
 import { posicaoLivre, raioDaIlha } from '../lib/colisao'
 import { diasSemUso, frescor } from '../lib/datas'
 import { corNoTema, PALETAS, type PaletaDoMapa, type TemaId } from '../lib/tema'
+import type { Barco, Rota } from '../lib/agentes'
+import { CamadaDeBarcos } from './barcos'
 import type { DaSimulacao, NoDaSimulacao, ParaSimulacao } from './protocolo'
 import SimulacaoWorker from './simulacao.worker?worker&inline'
 
@@ -86,7 +88,7 @@ const ATRITO_INERCIA = 0.9
 const ROTULO_INICIO = 0.35
 const ROTULO_FIM = 0.62
 /** Tamanho em que o texto é rasterizado; a escala do objeto faz o resto. */
-const FONTE_BASE = 13
+const FONTE_BASE = 15
 
 // --- Partículas ---------------------------------------------------------------
 
@@ -114,6 +116,8 @@ export interface AcoesDoPalco {
   onFixar: (id: string, pos: { x: number; y: number } | null) => void
   onMenu: (id: string, x: number, y: number) => void
   onMenuDoFundo: (x: number, y: number, pos: { x: number; y: number }) => void
+  /** Clique num barco do time de agentes. */
+  onBarco: (nome: string) => void
 }
 
 interface IlhaVisual {
@@ -214,7 +218,7 @@ function misturar(a: [number, number, number], b: [number, number, number], t: n
 
 /** Raio de colisão: considera o rótulo, senão os nomes se escrevem uns por cima dos outros. */
 function raioDeColisao(ilha: IlhaVisual): number {
-  return Math.max(raioDaIlha(ilha) + 16, ilha.id.length * 3.1)
+  return Math.max(raioDaIlha(ilha) + 18, ilha.id.length * 3.7)
 }
 
 /** Frequências e fases da flutuação, derivadas do nome: cada ilha boia no seu ritmo. */
@@ -302,6 +306,9 @@ export class MotorDoMapa {
   private readonly camadaCorpos = new Container()
   private readonly camadaAneis = new Graphics()
   private readonly camadaRotulos = new Container()
+  private readonly barcos = new CamadaDeBarcos(PALETAS.padrao)
+  /** Barco sob o botão esquerdo, esperando o soltar para virar clique. */
+  private barcoPressionado: string | null = null
   private texturaHalo: Texture | null = null
   /** Mar de ondas atrás do mapa, só nos temas de gravura. */
   private ondas: TilingSprite | null = null
@@ -405,7 +412,8 @@ export class MotorDoMapa {
       this.camadaHalos,
       this.camadaCorpos,
       this.camadaAneis,
-      this.camadaRotulos
+      this.camadaRotulos,
+      this.barcos.container
     )
     this.app.stage.addChild(this.mundo)
     this.montarOndas()
@@ -471,6 +479,7 @@ export class MotorDoMapa {
   definirTema(tema: TemaId): void {
     if (this.paleta.id === tema) return
     this.paleta = PALETAS[tema]
+    this.barcos.definirPaleta(this.paleta)
     for (const ilha of this.ilhas.values()) {
       this.pintarIlha(ilha)
       this.estilizarRotulo(ilha)
@@ -524,6 +533,12 @@ export class MotorDoMapa {
 
   definirAcoes(acoes: AcoesDoPalco): void {
     this.acoes = acoes
+  }
+
+  /** Os agentes do time, como barcos em volta das ilhas onde trabalham. */
+  definirBarcos(barcos: readonly Barco[], rotas: readonly Rota[]): void {
+    this.barcos.definir(barcos, rotas)
+    this.agendar()
   }
 
   definirEstado(estado: EstadoDoPalco): void {
@@ -850,8 +865,8 @@ export class MotorDoMapa {
     aneis.clear()
     let inquieto = false
 
-    // Fonte constante de 11 px na tela até o zoom passar de ~0,85; depois cresce até 13 no mapa.
-    const tamanhoFonte = Math.min(FONTE_BASE, 11 / k)
+    // Fonte constante de 13,5 px na tela até o zoom passar de ~0,9; depois cresce até 15 no mapa.
+    const tamanhoFonte = Math.min(FONTE_BASE, 13.5 / k)
     const escalaRotulo = tamanhoFonte / FONTE_BASE
     const rotuloPorZoom = Math.min(1, Math.max(0, (k - ROTULO_INICIO) / (ROTULO_FIM - ROTULO_INICIO)))
 
@@ -1215,15 +1230,42 @@ export class MotorDoMapa {
     let inquieto = this.atualizarCamera(passos)
     inquieto = this.atualizarIlhas(passos, agora) || inquieto
     inquieto = this.desenharPontes(passos, agora) || inquieto
+    inquieto = this.atualizarBarcos(passos, agora) || inquieto
     this.moverOndas(agora)
     if (!inquieto) this.ajustarNitidez()
 
     this.app.render()
 
     // Mapa parado, ninguém mexendo: o laço dorme até o próximo evento.
-    const flutuando = !this.semAnimacao && this.ordem.length > 0
+    const flutuando = !this.semAnimacao && (this.ordem.length > 0 || this.barcos.temBarcos())
     this.soFlutuando = flutuando && !inquieto && !this.simulando && !this.arraste
     if (inquieto || this.simulando || this.arraste || flutuando) this.agendar()
+  }
+
+  private atualizarBarcos(passos: number, agora: number): boolean {
+    let somaX = 0
+    let somaY = 0
+    let n = 0
+    for (const ilha of this.ordem) {
+      if (ilha.x === undefined || ilha.y === undefined) continue
+      somaX += ilha.x
+      somaY += ilha.y
+      n += 1
+    }
+    // Agente sem ilha ancora no meio do arquipélago.
+    const centro = n > 0 ? { x: somaX / n, y: somaY / n } : { x: 0, y: 0 }
+    return this.barcos.atualizar(
+      passos,
+      agora,
+      this.camera.k,
+      (id) => {
+        const ilha = this.ilhas.get(id)
+        if (!ilha || ilha.x === undefined || ilha.y === undefined) return null
+        return { ...posicaoDesenhada(ilha, agora), raio: raioDaIlha(ilha) }
+      },
+      centro,
+      this.semAnimacao
+    )
   }
 
   // --- Mouse ------------------------------------------------------------------
@@ -1274,6 +1316,14 @@ export class MotorDoMapa {
 
     const tela = this.pontoNaTela(evento)
     const mundo = this.paraMundo(evento.clientX, evento.clientY)
+
+    // O barco fica por cima da ilha, então é ele quem recebe o clique.
+    const barco = this.barcos.barcoEm(mundo.x, mundo.y, this.camera.k)
+    if (barco) {
+      this.barcoPressionado = barco
+      return
+    }
+
     const ilha = this.ilhaEm(mundo.x, mundo.y)
 
     if (ilha) {
@@ -1309,8 +1359,14 @@ export class MotorDoMapa {
     const arraste = this.arraste
 
     if (!arraste) {
+      if (this.barcoPressionado) return
       const mundo = this.paraMundo(evento.clientX, evento.clientY)
-      this.definirHover(this.ilhaEm(mundo.x, mundo.y)?.id ?? null)
+      const barco = this.barcos.barcoEm(mundo.x, mundo.y, this.camera.k)
+      this.barcos.definirHover(barco)
+      this.definirHover(barco ? null : (this.ilhaEm(mundo.x, mundo.y)?.id ?? null))
+      // A mãozinha também sobre um barco.
+      if (barco) this.elemento.classList.add('sobre-ilha')
+      this.agendar()
       return
     }
 
@@ -1351,6 +1407,19 @@ export class MotorDoMapa {
   }
 
   private readonly aoSoltar = (evento: PointerEvent): void => {
+    if (evento.button === 0 && this.barcoPressionado) {
+      if (this.app.canvas.hasPointerCapture(evento.pointerId)) {
+        this.app.canvas.releasePointerCapture(evento.pointerId)
+      }
+      this.elemento.classList.remove('arrastando')
+      const nome = this.barcoPressionado
+      this.barcoPressionado = null
+      const mundo = this.paraMundo(evento.clientX, evento.clientY)
+      // Só é clique se soltou em cima do mesmo barco.
+      if (this.barcos.barcoEm(mundo.x, mundo.y, this.camera.k) === nome) this.acoes.onBarco(nome)
+      this.agendar()
+      return
+    }
     if (evento.button !== 0 || !this.arraste) return
     if (this.app.canvas.hasPointerCapture(evento.pointerId)) {
       this.app.canvas.releasePointerCapture(evento.pointerId)
@@ -1410,6 +1479,7 @@ export class MotorDoMapa {
 
   /** Gesto interrompido (janela perdeu o foco, sistema cancelou o ponteiro). */
   private readonly aoCancelar = (): void => {
+    this.barcoPressionado = null
     this.elemento.classList.remove('arrastando')
     const arraste = this.arraste
     this.arraste = null

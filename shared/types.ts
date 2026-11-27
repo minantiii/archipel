@@ -104,6 +104,56 @@ export interface Versoes {
  */
 export type Idioma = 'pt' | 'en'
 
+/** Qual programa de linha de comando dá vida ao agente. `gemini` roda pelo `agy`. */
+export type MotorAgente = 'claude' | 'gemini'
+
+export const MOTORES: MotorAgente[] = ['claude', 'gemini']
+
+/**
+ * Um agente do time: separado das ilhas (não é "cada ilha um agente"), mas
+ * trabalhando na pasta de uma delas. Mora em `.organizador/agentes/<nome>.md`.
+ */
+export interface Agente {
+  /** Nome do arquivo, sem `.md`. É a identidade do agente e o alvo do `--para`. */
+  nome: string
+  motor: MotorAgente
+  /** Modelo pedido ao motor. `null` = o padrão dele. */
+  modelo: string | null
+  /** Ilha onde o agente trabalha. `null` = a raiz do mapa. */
+  ilha: string | null
+  /** Corpo do `.md`: a função do agente, em texto livre. */
+  funcao: string
+}
+
+export type StatusConversa = 'trabalhando' | 'terminou' | 'falhou'
+
+/**
+ * Uma tarefa passada de um agente a outro, com a resposta.
+ * Mora em `.organizador/agentes/conversas/<id>.md`.
+ */
+export interface Conversa {
+  id: string
+  /** Quem pediu: um agente, ou `voce` quando veio de um terminal comum. */
+  de: string
+  para: string
+  status: StatusConversa
+  inicio: string
+  fim: string | null
+  /** Id da sessão no motor (`claude -r` / `agy --conversation`), para continuar a conversa. */
+  sessao: string | null
+  /** Processo do `delegar` enquanto a tarefa roda: é por ele que o painel para a tarefa. */
+  pid: number | null
+  tarefa: string
+  resposta: string
+}
+
+/** Os agentes do mapa e as conversas mais recentes entre eles. */
+export interface Time {
+  agentes: Agente[]
+  /** Da mais nova para a mais velha. */
+  conversas: Conversa[]
+}
+
 /** API exposta em `window.api` pelo preload. */
 export interface OrganizadorApi {
   sistema: {
@@ -181,14 +231,36 @@ export interface OrganizadorApi {
 
   /** Terminal embutido: shells de verdade no painel embaixo do mapa. */
   terminal: {
-    /** Abre um shell na pasta da ilha (ou na raiz, com `null`). */
-    abrir(ilha: string | null, colunas: number, linhas: number): Promise<{ id: number; pasta: string }>
+    /**
+     * Abre um shell na pasta da ilha (ou na raiz, com `null`). Com `agente`, em
+     * vez do shell roda o motor daquele agente, na ilha dele.
+     */
+    abrir(
+      ilha: string | null,
+      colunas: number,
+      linhas: number,
+      agente?: string | null,
+      /** Com `agente`: retoma esta sessão do motor em vez de começar uma nova. */
+      sessao?: string | null
+    ): Promise<{ id: number; pasta: string }>
     escrever(id: number, dados: string): void
     redimensionar(id: number, colunas: number, linhas: number): void
     fechar(id: number): void
     /** Saída de todos os shells; quem ouve filtra pelo id. Devolve o unsubscribe. */
     aoReceber(callback: (id: number, dados: string) => void): () => void
     aoSair(callback: (id: number, codigo: number) => void): () => void
+  }
+
+  /** Time de agentes: `.organizador/agentes/`. */
+  agentes: {
+    carregar(): Promise<Time>
+    /** Cria ou atualiza. Com `nomeAntigo` diferente do nome, renomeia. */
+    salvar(agente: Agente, nomeAntigo: string | null): Promise<Resultado<Time>>
+    apagar(nome: string): Promise<Resultado<Time>>
+    /** Interrompe uma tarefa em andamento (mata o `delegar` e o motor que ele abriu). */
+    parar(conversa: string): Promise<Resultado<Time>>
+    /** Algo mudou em `.organizador/agentes/` (agente editado, tarefa começou ou terminou). */
+    aoMudar(callback: () => void): () => void
   }
 }
 
@@ -229,5 +301,11 @@ export const CANAIS = {
   abrirVscode: 'abrir:vscode',
   abrirTerminal: 'abrir:terminal',
   abrirTerminalNoMapa: 'abrir:terminal-mapa',
-  abrirCopiarCaminho: 'abrir:copiar-caminho'
+  abrirCopiarCaminho: 'abrir:copiar-caminho',
+
+  agentesCarregar: 'agentes:carregar',
+  agentesSalvar: 'agentes:salvar',
+  agentesApagar: 'agentes:apagar',
+  agentesParar: 'agentes:parar',
+  agentesMudou: 'agentes:mudou'
 } as const
