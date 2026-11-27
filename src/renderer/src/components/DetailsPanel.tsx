@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { Mapa, Ilha } from '@shared/types'
 import { emPalavras, porExtenso } from '../lib/datas'
+import { corNoTema } from '../lib/tema'
 import { useStore } from '../state/store'
 import type { AcaoDeAbrir } from '../state/store'
 
@@ -47,6 +48,7 @@ export default function DetailsPanel({
   onBatizada
 }: Props): React.JSX.Element {
   const t = useStore((e) => e.t)
+  const tema = useStore((e) => e.tema)
   const [diario, setDiario] = useState(() => paraEditor(ilha.diario))
   const [novaTag, setNovaTag] = useState('')
   const [renomeando, setRenomeando] = useState<string | null>(null)
@@ -168,7 +170,7 @@ export default function DetailsPanel({
               className="chip-tag no-painel"
               style={
                 {
-                  '--cor-tag': mapa.tags.find((t) => t.nome === tag)?.cor ?? '#6b6b78'
+                  '--cor-tag': corNoTema(mapa.tags.find((t) => t.nome === tag)?.cor ?? '#6b6b78', tema)
                 } as React.CSSProperties
               }
             >

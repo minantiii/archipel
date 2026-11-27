@@ -218,6 +218,15 @@ export function registrarIpc(): void {
 
   ipcMain.handle(CANAIS.sistemaIdioma, (): Idioma => idiomaAtual())
 
+  // O tema muda as cores do topo, e os botões de janela são desenhados pelo
+  // Windows: sem isto o tema claro ficava com um bloco escuro no canto.
+  ipcMain.on(CANAIS.sistemaCorDoTopo, (evento, cor: unknown, simbolos: unknown) => {
+    const hex = /^#[0-9a-f]{6}$/i
+    if (typeof cor !== 'string' || typeof simbolos !== 'string') return
+    if (!hex.test(cor) || !hex.test(simbolos)) return
+    BrowserWindow.fromWebContents(evento.sender)?.setTitleBarOverlay({ color: cor, symbolColor: simbolos })
+  })
+
   ipcMain.handle(CANAIS.mapaObterRaiz, (): Promise<string | null> => obterRaiz())
 
   ipcMain.handle(CANAIS.mapaEscolherRaiz, async (evento): Promise<string | null> => {

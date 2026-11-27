@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { Idioma, Mapa, MetaPatch, Movimentacao, Posicao, Resultado } from '@shared/types'
 import { textosDe, type Textos } from '../lib/textos'
+import { aplicarTema, temaSalvo, type TemaId } from '../lib/tema'
 
 /**
  * Estado do renderer.
@@ -24,6 +25,8 @@ interface Estado {
   filtroTag: string | null
 
   idioma: Idioma
+  /** Tema visual, escolhido em Configurações. Preferência da máquina, não do mapa. */
+  tema: TemaId
   /** Os textos do idioma em vigor, prontos para usar na tela. */
   t: Textos
   /** Quando ligado, clicar de uma ilha a outro cria a conexão em vez de selecionar. */
@@ -69,6 +72,7 @@ interface Estado {
   setFiltroTag: (tag: string | null) => void
   /** Pega do main o idioma da sessão — o que foi escolhido no instalador. */
   carregarIdioma: () => Promise<void>
+  definirTema: (tema: TemaId) => void
   alternarModoConexao: () => void
   /** Trata o clique numa ilha quando o modo conexão está ligado. */
   clicarEmModoConexao: (id: string) => Promise<void>
@@ -212,6 +216,7 @@ export const useStore = create<Estado>((set, get) => ({
   // Palpite até o main dizer o que ficou gravado, logo na abertura.
   idioma: 'pt',
   t: textosDe('pt'),
+  tema: temaSalvo(),
   modoConexao: false,
   conectandoDe: null,
   batizando: null,
@@ -361,6 +366,11 @@ export const useStore = create<Estado>((set, get) => ({
   carregarIdioma: async () => {
     const idioma = await window.api.sistema.idioma()
     set({ idioma, t: textosDe(idioma) })
+  },
+
+  definirTema: (tema) => {
+    aplicarTema(tema)
+    set({ tema })
   },
 
   alternarModoConexao: () =>

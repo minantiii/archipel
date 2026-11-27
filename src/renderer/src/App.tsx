@@ -3,7 +3,8 @@ import ContextMenu, { type ItemMenu } from './components/ContextMenu'
 import DetailsPanel from './components/DetailsPanel'
 import DivisorLateral, { LARGURA_PADRAO, limitarLargura } from './components/DivisorLateral'
 import Palco from './components/Palco'
-import { IconeConexao, IconeRecarregar } from './components/Icones'
+import Configuracoes from './components/Configuracoes'
+import { IconeConexao, IconeConfiguracoes, IconeRecarregar } from './components/Icones'
 import Sidebar from './components/Sidebar'
 import { useStore } from './state/store'
 
@@ -88,6 +89,7 @@ export default function App(): React.JSX.Element {
   } = useStore()
 
   const [menu, setMenu] = useState<EstadoMenu | null>(null)
+  const [configAberta, setConfigAberta] = useState(false)
   const [larguraLateral, setLarguraLateral] = useState(larguraSalva)
   const [lateralVisivel, setLateralVisivel] = useState(
     () => localStorage.getItem(CHAVE_LATERAL) !== 'nao'
@@ -376,6 +378,15 @@ export default function App(): React.JSX.Element {
           >
             <IconeRecarregar />
           </button>
+          <button
+            className={configAberta ? 'botao-icone botao-configuracoes ativo' : 'botao-icone botao-configuracoes'}
+            onClick={() => setConfigAberta((aberta) => !aberta)}
+            title={t.configuracoes}
+            aria-label={t.configuracoes}
+            aria-expanded={configAberta}
+          >
+            <IconeConfiguracoes />
+          </button>
           <button onClick={() => void escolherMapa()}>{t.trocarDeMapa}</button>
           <button className="primario" onClick={() => void adicionarPasta()} disabled={carregando}>
             {t.adicionarPasta}
@@ -384,6 +395,7 @@ export default function App(): React.JSX.Element {
 
         {/* Fora do flex (é absoluta): sinaliza leitura de disco sem mexer no layout. */}
         {carregando && <div className="barra-carregando" />}
+        {configAberta && <Configuracoes onFechar={() => setConfigAberta(false)} />}
       </header>
 
       {erro && (

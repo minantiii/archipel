@@ -34,6 +34,14 @@ Respondê-las define a ordem das fases.
 - [x] Ilhas boiam devagar em volta do próprio lugar (só desenho; param no hover e no arraste)
 - [x] Instalado no lugar do `.exe` antigo
 
+### Temas (27/11/2026)
+
+- [x] Engrenagem no topo abre Configurações, com a escolha de tema (salva na máquina)
+- [x] Tema Kanagawa (gravura de Hokusai): papel creme, ondas seigaiha, nanquim, pontes em pincelada
+- [x] Tema Kanagawa noite: a mesma gravura num mar azul-noite
+- [x] Botões de janela do Windows mudam de cor com o tema
+- [x] Tirada a dica de rodapé do mapa
+
 ### Mapa de pastas (27/11/2026)
 
 - [x] Pastas da área de trabalho trazidas para o `mapa-trabalho`
@@ -101,6 +109,22 @@ Memória automática entre sessões. Repositório: <https://github.com/akitaonra
 
 - [ ] **5.1 Ctrl+K**: digitar o nome e pular para a ilha, ou abrir a pasta
 - [ ] **5.2 Mar por tag**: mancha de cor suave atrás de cada grupo
+
+## Temas: próximos passos
+
+- [ ] **T.1 Escolher o tema ao instalar**
+  - [ ] Decidir onde: numa tela do instalador, ou na primeira vez que o app abre
+  - [ ] Dá para trocar depois em Configurações
+- [ ] **T.2 Criar o próprio tema**
+  - [ ] Editor em Configurações: cores do fundo, painéis, texto, destaque e pontes
+  - [ ] Ver o mapa mudando enquanto edita
+  - [ ] Salvar com nome e trocar entre os temas criados
+  - [ ] Exportar/importar o tema como arquivo, para passar para outra pessoa
+- [ ] **T.3 Imagem de fundo (wallpaper)**
+  - [ ] Escolher uma imagem do computador para o fundo do mapa
+  - [ ] Ajustar escurecer/clarear e desfoque, para as ilhas continuarem legíveis
+  - [ ] Funciona com qualquer tema (por cima do papel ou do cinza)
+  - [ ] A imagem é copiada para a pasta do app (não quebra se o original sumir)
 
 ## Fase 6: time de agentes (inspirado no OpenBot)
 

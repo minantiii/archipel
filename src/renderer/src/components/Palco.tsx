@@ -45,6 +45,7 @@ export default function Palco({
   onMenuDoFundo
 }: Props): React.JSX.Element {
   const t = useStore((e) => e.t)
+  const tema = useStore((e) => e.tema)
   const container = useRef<HTMLDivElement | null>(null)
   const motor = useRef<MotorDoMapa | null>(null)
 
@@ -52,8 +53,8 @@ export default function Palco({
   // Num ref porque o motor nasce de forma assíncrona e não pode perder o que
   // chegou enquanto ele subia.
   const acoes: AcoesDoPalco = { onClicar, onSelecionar, onAbrir, onFixar, onMenu, onMenuDoFundo }
-  const ultimo = useRef({ mapa, acoes, estado: { selecionado, destacados, conectandoDe } })
-  ultimo.current = { mapa, acoes, estado: { selecionado, destacados, conectandoDe } }
+  const ultimo = useRef({ mapa, acoes, tema, estado: { selecionado, destacados, conectandoDe } })
+  ultimo.current = { mapa, acoes, tema, estado: { selecionado, destacados, conectandoDe } }
 
   useEffect(() => {
     const elemento = container.current
@@ -68,6 +69,7 @@ export default function Palco({
         return
       }
       motor.current = criado
+      criado.definirTema(ultimo.current.tema)
       criado.definirEstado(ultimo.current.estado)
       criado.definirMapa(ultimo.current.mapa)
     })
@@ -82,6 +84,10 @@ export default function Palco({
   useEffect(() => {
     motor.current?.definirMapa(mapa)
   }, [mapa])
+
+  useEffect(() => {
+    motor.current?.definirTema(tema)
+  }, [tema])
 
   useEffect(() => {
     motor.current?.definirEstado({ selecionado, destacados, conectandoDe })
@@ -139,10 +145,6 @@ export default function Palco({
           <IconeEnquadrar tamanho={17} />
         </button>
       )}
-
-      <div className="dica-mapa">
-        {t.dicaDoMapa} <kbd>Alt</kbd> {t.dicaDoMapaAlt}
-      </div>
     </div>
   )
 }

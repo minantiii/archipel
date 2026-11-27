@@ -112,7 +112,16 @@ const PT = {
   modoConexaoAtivo: 'Modo conexão: clique de uma ilha até outra para criar a ponte.',
   atualizacaoPronta: (versao: string) =>
     `Archipel ${versao} foi baixado e será instalado quando você fechar o app.`,
-  carregando: 'Carregando…'
+  carregando: 'Carregando…',
+
+  // Configurações
+  configuracoes: 'Configurações',
+  tema: 'Tema',
+  temas: {
+    padrao: { nome: 'Padrão', descricao: 'Cinza escuro, como sempre foi.' },
+    kanagawa: { nome: 'Kanagawa', descricao: 'Gravura japonesa: papel creme e azul da onda.' },
+    'kanagawa-noite': { nome: 'Kanagawa noite', descricao: 'A mesma gravura, num mar azul-noite.' }
+  }
 }
 
 const EN: typeof PT = {
@@ -205,7 +214,15 @@ const EN: typeof PT = {
   modoConexaoAtivo: 'Bridge mode: click from one island to another to build the bridge.',
   atualizacaoPronta: (versao: string) =>
     `Archipel ${versao} has been downloaded and will install when you close the app.`,
-  carregando: 'Loading…'
+  carregando: 'Loading…',
+
+  configuracoes: 'Settings',
+  tema: 'Theme',
+  temas: {
+    padrao: { nome: 'Default', descricao: 'Dark gray, as it has always been.' },
+    kanagawa: { nome: 'Kanagawa', descricao: 'Japanese woodblock: cream paper and wave blue.' },
+    'kanagawa-noite': { nome: 'Kanagawa night', descricao: 'The same print, on a night-blue sea.' }
+  }
 }
 
 const TRADUCOES = { pt: PT, en: EN }

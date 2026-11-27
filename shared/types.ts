@@ -110,6 +110,8 @@ export interface OrganizadorApi {
     versoes(): Promise<Versoes>
     /** Idioma da sessão: o escolhido no instalador, ou o do sistema. Só leitura. */
     idioma(): Promise<Idioma>
+    /** Pinta os botões de janela do Windows nas cores do tema escolhido. */
+    corDoTopo(cor: string, simbolos: string): void
     /**
      * Caminho no disco de algo solto na janela pelo Explorer.
      *
@@ -182,6 +184,7 @@ export interface OrganizadorApi {
 export const CANAIS = {
   sistemaVersoes: 'sistema:versoes',
   sistemaIdioma: 'sistema:idioma',
+  sistemaCorDoTopo: 'sistema:cor-do-topo',
 
   mapaObterRaiz: 'mapa:obter-raiz',
   mapaEscolherRaiz: 'mapa:escolher-raiz',

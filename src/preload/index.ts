@@ -23,6 +23,8 @@ const api: OrganizadorApi = {
   sistema: {
     versoes: (): Promise<Versoes> => ipcRenderer.invoke(CANAIS.sistemaVersoes),
     idioma: (): Promise<Idioma> => ipcRenderer.invoke(CANAIS.sistemaIdioma),
+    corDoTopo: (cor: string, simbolos: string): void =>
+      ipcRenderer.send(CANAIS.sistemaCorDoTopo, cor, simbolos),
     // A única coisa aqui que não é IPC. O `File` não atravessa o
     // `contextBridge`, então quem pergunta o caminho tem que ser este lado da
     // ponte — e `webUtils` existe justamente para isso, inclusive com sandbox.

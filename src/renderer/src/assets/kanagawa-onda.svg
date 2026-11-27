@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 420">
+  <!-- Desenho próprio, no espírito da gravura de Hokusai: uma onda que se curva
+       sobre si mesma, com a espuma em "garras". -->
+
+  <!-- Corpo da onda, curvando para a direita -->
+  <path fill="#1f3b63" d="M0 420 L0 248 C36 168 118 86 232 66 C326 50 408 88 436 152
+    C454 194 432 236 396 242 C364 247 342 226 350 198 C356 174 386 168 394 186
+    C380 158 340 148 304 168 C248 200 236 280 278 342 C300 372 342 394 384 402 L0 420 Z"/>
+
+  <!-- Faixas de azul mais claro por dentro da onda -->
+  <path d="M28 262 C68 190 140 120 232 102 C312 88 374 116 398 160" stroke="#3d6b99"
+    stroke-width="14" fill="none" stroke-linecap="round"/>
+  <path d="M58 304 C98 238 160 180 236 160 C292 146 332 156 354 178" stroke="#7fa6c4"
+    stroke-width="8" fill="none" stroke-linecap="round"/>
+  <path d="M90 344 C126 288 180 240 246 222" stroke="#3d6b99" stroke-width="6" fill="none"
+    stroke-linecap="round"/>
+
+  <!-- Espuma em garras na crista -->
+  <g fill="#f7efdd">
+    <circle cx="160" cy="104" r="6"/>
+    <circle cx="182" cy="90" r="7"/>
+    <circle cx="206" cy="78" r="8"/>
+    <circle cx="232" cy="70" r="9"/>
+    <circle cx="258" cy="66" r="8"/>
+    <circle cx="284" cy="66" r="8"/>
+    <circle cx="310" cy="70" r="8"/>
+    <circle cx="336" cy="78" r="7"/>
+    <circle cx="360" cy="90" r="7"/>
+    <circle cx="382" cy="106" r="6"/>
+    <circle cx="402" cy="126" r="6"/>
+    <circle cx="418" cy="148" r="5"/>
+    <circle cx="424" cy="172" r="4"/>
+  </g>
+  <g stroke="#f7efdd" stroke-width="3" stroke-linecap="round" fill="none">
+    <path d="M232 62 C226 48 232 38 242 34"/>
+    <path d="M284 58 C282 44 290 36 300 34"/>
+    <path d="M336 70 C338 56 348 50 358 50"/>
+    <path d="M382 98 C388 86 398 82 408 84"/>
+    <path d="M410 136 C420 128 430 128 438 132"/>
+  </g>
+
+  <!-- Mar baixo à frente, com a linha de espuma -->
+  <path fill="#3d6b99" opacity="0.85" d="M0 400 C80 360 160 352 240 372 C300 388 340 380 380 360
+    C430 338 480 340 530 362 C580 384 640 386 700 364 C730 352 750 350 760 352 L760 420 L0 420 Z"/>
+  <path d="M0 410 C90 384 170 380 250 396 C330 410 400 398 460 384 C540 366 620 380 700 396 L760 404"
+    stroke="#f7efdd" stroke-width="3" fill="none" opacity="0.7"/>
+</svg>

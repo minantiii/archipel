@@ -1347,3 +1347,313 @@ body.redimensionando {
   background: var(--perigo);
   color: #fff;
 }
+
+/* --- Configurações ---------------------------------------------------------- */
+
+.configuracoes {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: calc(100vw - env(titlebar-area-width, 100vw) + 16px);
+  z-index: 30;
+  width: 320px;
+  padding: 14px;
+  background: var(--fundo-flutuante);
+  border: 1px solid var(--borda-forte);
+  border-radius: var(--raio);
+  box-shadow: var(--sombra-flutuante);
+  transform-origin: top right;
+  animation: brotar var(--rapido) var(--mola) both;
+  -webkit-app-region: no-drag;
+}
+
+.configuracoes h2 {
+  margin: 0 0 12px;
+  font-size: 15px;
+}
+
+.configuracoes h3 {
+  margin: 0 0 8px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--texto-suave);
+}
+
+.lista-temas {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.opcao-tema {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 8px;
+  text-align: left;
+  background: transparent;
+}
+
+.opcao-tema.ativo {
+  border-color: var(--destaque);
+  box-shadow: 0 0 0 1px var(--destaque);
+}
+
+.amostra-tema {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 74px;
+  height: 40px;
+  border-radius: var(--raio-p);
+  border: 1px solid var(--borda);
+}
+
+.amostra-tema i {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 1.5px solid;
+}
+
+.opcao-tema-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.opcao-tema-texto small {
+  font-size: 11.5px;
+  color: var(--texto-suave);
+  line-height: 1.35;
+}
+
+/* O canvas sobe uma camada para ficar acima da gravura decorativa do palco; os
+   controles do palco sobem mais uma, para continuar clicáveis. */
+.palco canvas {
+  position: relative;
+  z-index: 1;
+}
+
+.botao-enquadrar,
+.dica-mapa {
+  z-index: 2;
+}
+
+/* ============================================================================
+   Temas Kanagawa
+   ----------------------------------------------------------------------------
+   No espírito de "A Grande Onda de Kanagawa" (Hokusai, ~1831): azul da Prússia,
+   papel creme, nanquim e o vermelho do carimbo. As mesmas variáveis do tema
+   padrão, mais o que estava escrito à mão nas regras (gradientes, faixas).
+   ========================================================================== */
+
+:root[data-tema='kanagawa'] {
+  --fundo: #efe4cc;
+  --fundo-painel: #e8dabc;
+  --fundo-elevado: #f5ecd8;
+  --fundo-flutuante: #f7efdd;
+  --borda: #cdbb98;
+  --borda-forte: #a8936c;
+  --texto: #1d2633;
+  --texto-suave: #6b6352;
+  --destaque: #1f3b63;
+  --destaque-suave: #3d6b99;
+  --destaque-rgb: 31, 59, 99;
+  --secundario: #b8402e;
+  --perigo: #b8402e;
+  --atencao: #c9933a;
+  --raio: 4px;
+  --raio-p: 3px;
+  --sombra-flutuante: 4px 6px 0 rgba(29, 38, 51, 0.18), 0 14px 30px rgba(60, 40, 10, 0.18);
+  --fonte-gravura: 'Palatino Linotype', 'Book Antiqua', Georgia, 'Yu Mincho', serif;
+  /* Fibra do papel: ruído fractal bem fraco, tingido de sépia. */
+  --papel: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.45 0 0 0 0 0.36 0 0 0 0 0.2 0 0 0 0.09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
+}
+
+:root[data-tema='kanagawa-noite'] {
+  --fundo: #0f1a2b;
+  --fundo-painel: #13213a;
+  --fundo-elevado: #1a2b47;
+  --fundo-flutuante: #1c2e4c;
+  --borda: #2a3e5e;
+  --borda-forte: #3d5578;
+  --texto: #ece2cc;
+  --texto-suave: #9aa6b5;
+  --destaque: #3d6b99;
+  --destaque-suave: #9fc2de;
+  --destaque-rgb: 61, 107, 153;
+  --secundario: #e0644c;
+  --perigo: #e0644c;
+  --atencao: #e2b45a;
+  --raio: 4px;
+  --raio-p: 3px;
+  --sombra-flutuante: 4px 6px 0 rgba(0, 0, 0, 0.35), 0 16px 36px rgba(0, 0, 0, 0.45);
+  --fonte-gravura: 'Palatino Linotype', 'Book Antiqua', Georgia, 'Yu Mincho', serif;
+  --papel: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.85 0 0 0 0 0.85 0 0 0 0 0.8 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
+}
+
+:root[data-tema^='kanagawa'] body {
+  background: var(--fundo) var(--papel);
+}
+
+/* Títulos e nomes com cara de impresso; o texto corrido segue em Segoe, que lê
+   melhor em tamanho pequeno. */
+:root[data-tema^='kanagawa'] .topo-identidade strong,
+:root[data-tema^='kanagawa'] .detalhes-topo h2,
+:root[data-tema^='kanagawa'] .boas-vindas h1,
+:root[data-tema^='kanagawa'] .configuracoes h2,
+:root[data-tema^='kanagawa'] .opcao-tema-texto strong,
+:root[data-tema^='kanagawa'] .item-nome,
+:root[data-tema^='kanagawa'] .menu-titulo {
+  font-family: var(--fonte-gravura);
+}
+
+:root[data-tema^='kanagawa'] .topo-identidade strong {
+  font-size: 17px;
+  letter-spacing: 0.02em;
+}
+
+:root[data-tema^='kanagawa'] .boas-vindas h1 {
+  background: none;
+  color: var(--destaque-suave);
+  font-size: 34px;
+}
+
+:root[data-tema^='kanagawa'] button:hover:not(:disabled) {
+  background: var(--fundo-flutuante);
+}
+
+:root[data-tema^='kanagawa'] button.primario,
+:root[data-tema^='kanagawa'] .topo-acoes button.ativo:not(.botao-icone) {
+  background: var(--destaque);
+  color: #f7efdd;
+  border-color: transparent;
+  box-shadow: 2px 3px 0 rgba(0, 0, 0, 0.22);
+}
+
+:root[data-tema^='kanagawa'] button.primario:hover:not(:disabled) {
+  background: var(--destaque-suave);
+  box-shadow: 3px 4px 0 rgba(0, 0, 0, 0.22);
+}
+
+/* O topo é uma faixa de papel mais escura, com fio de nanquim embaixo e um
+   carimbo vermelho no meio, como a assinatura da gravura. */
+:root[data-tema^='kanagawa'] .topo {
+  background: var(--fundo-painel) var(--papel);
+  backdrop-filter: none;
+}
+
+:root[data-tema^='kanagawa'] .topo::after {
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--texto) 8%,
+    var(--texto) 46%,
+    var(--secundario) 46%,
+    var(--secundario) 54%,
+    var(--texto) 54%,
+    var(--texto) 92%,
+    transparent
+  );
+  opacity: 0.7;
+}
+
+:root[data-tema^='kanagawa'] .lateral,
+:root[data-tema^='kanagawa'] .divisor-lateral {
+  background: var(--fundo-painel) var(--papel);
+}
+
+:root[data-tema^='kanagawa'] .detalhes,
+:root[data-tema^='kanagawa'] .menu-contexto,
+:root[data-tema^='kanagawa'] .configuracoes,
+:root[data-tema^='kanagawa'] .cortina-solta-caixa {
+  background: var(--fundo-flutuante) var(--papel);
+  backdrop-filter: none;
+}
+
+:root[data-tema^='kanagawa'] .detalhes {
+  border-left: 2px solid var(--borda-forte);
+}
+
+:root[data-tema='kanagawa'] .chip-tag:hover:not(:disabled),
+:root[data-tema='kanagawa'] .chip-tag.ativo {
+  color: #f7efdd;
+}
+
+:root[data-tema='kanagawa-noite'] .chip-tag:hover:not(:disabled),
+:root[data-tema='kanagawa-noite'] .chip-tag.ativo {
+  color: #0f1a2b;
+}
+
+:root[data-tema^='kanagawa'] .chip-tag.ativo {
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.2);
+}
+
+:root[data-tema^='kanagawa'] .item-pasta::before,
+:root[data-tema^='kanagawa'] .divisor-lateral:hover::before,
+:root[data-tema^='kanagawa'] .divisor-lateral.ativo::before,
+:root[data-tema^='kanagawa'] .barra-carregando::after {
+  background: var(--secundario);
+}
+
+:root[data-tema^='kanagawa'] .faixa-modo {
+  color: var(--destaque);
+  background: rgba(var(--destaque-rgb), 0.12);
+}
+
+:root[data-tema='kanagawa-noite'] .faixa-modo {
+  color: var(--destaque-suave);
+}
+
+:root[data-tema='kanagawa'] .faixa-aviso,
+:root[data-tema='kanagawa'] .aviso-ausente {
+  color: #6b4a12;
+  background: rgba(201, 147, 58, 0.16);
+  border-color: rgba(201, 147, 58, 0.5);
+}
+
+:root[data-tema='kanagawa'] .cortina-solta {
+  background: rgba(239, 228, 204, 0.75);
+}
+
+:root[data-tema='kanagawa-noite'] .cortina-solta {
+  background: rgba(15, 26, 43, 0.75);
+}
+
+:root[data-tema^='kanagawa'] .menu-item:hover:not(:disabled) {
+  color: #f7efdd;
+}
+
+/* --- O palco: papel e, no canto, uma grande onda -------- */
+
+:root[data-tema^='kanagawa'] .palco {
+  background: var(--fundo) var(--papel);
+}
+
+:root[data-tema^='kanagawa'] .palco::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: min(44%, 560px);
+  aspect-ratio: 760 / 420;
+  z-index: 0;
+  pointer-events: none;
+  background: url('./assets/kanagawa-onda.svg') no-repeat left bottom / contain;
+  opacity: 0.12;
+  /* O mar da frente termina num corte reto: some aos poucos em vez de acabar em quina. */
+  -webkit-mask-image: linear-gradient(to right, #000 55%, transparent 98%);
+  mask-image: linear-gradient(to right, #000 55%, transparent 98%);
+}
+
+:root[data-tema='kanagawa-noite'] .palco::before {
+  opacity: 0.22;
+  filter: brightness(1.7) saturate(0.8);
+}

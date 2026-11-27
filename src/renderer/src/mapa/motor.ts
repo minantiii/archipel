@@ -1,9 +1,10 @@
 // Sem isto o PixiJS gera código com `new Function`, que a CSP do app barra.
 import 'pixi.js/unsafe-eval'
-import { Application, Container, Graphics, Sprite, Text, Texture } from 'pixi.js'
+import { Application, Container, Graphics, Sprite, Text, Texture, TilingSprite } from 'pixi.js'
 import type { Ilha, Mapa } from '@shared/types'
 import { posicaoLivre, raioDaIlha } from '../lib/colisao'
 import { diasSemUso, frescor } from '../lib/datas'
+import { corNoTema, PALETAS, type PaletaDoMapa, type TemaId } from '../lib/tema'
 import type { DaSimulacao, NoDaSimulacao, ParaSimulacao } from './protocolo'
 import SimulacaoWorker from './simulacao.worker?worker&inline'
 
@@ -23,15 +24,14 @@ import SimulacaoWorker from './simulacao.worker?worker&inline'
  * fixar, Alt+clique para soltar, duplo clique para abrir.
  */
 
-// --- Cores (cópias do CSS: o WebGL não lê variável CSS) ------------------------
+// As cores vêm do tema (`lib/tema.ts`): o WebGL não lê variável CSS.
 
-const COR_NEUTRA = '#6b6b78'
-const COR_AUSENTE = '#4a4a55'
-const COR_ROTULO = '#d8d8e0'
-const COR_ROTULO_AUSENTE = '#7a7a86'
-const COR_DESTAQUE = '#68a0e3'
-const RGB_PONTE: [number, number, number] = [0x3a, 0x3a, 0x45]
-const RGB_PONTE_ACESA: [number, number, number] = [0x46, 0x88, 0xd7]
+/** Lado, em pixels, do ladrilho do padrão de ondas (seigaiha). */
+const LADO_ONDAS = 96
+/** Quanto o mar anda com a câmera: menos que as ilhas, para parecer mais fundo. */
+const PARALAXE_ONDAS = 0.55
+/** Deriva lenta do mar, em pixels por segundo. */
+const DERIVA_ONDAS = 4
 
 // --- Tempo e animação --------------------------------------------------------
 
@@ -87,7 +87,6 @@ const ROTULO_INICIO = 0.35
 const ROTULO_FIM = 0.62
 /** Tamanho em que o texto é rasterizado; a escala do objeto faz o resto. */
 const FONTE_BASE = 13
-const FAMILIA_FONTE = "'Segoe UI', system-ui, sans-serif"
 
 // --- Partículas ---------------------------------------------------------------
 
@@ -262,6 +261,38 @@ function criarTexturaHalo(): Texture {
   return Texture.from(tela)
 }
 
+/**
+ * Ladrilho do seigaiha, o padrão de ondas das gravuras japonesas: leques de
+ * arcos concêntricos, cada fileira deslocada meio leque da anterior.
+ */
+function criarTexturaOndas(cor: string, fundo: string): Texture {
+  const lado = LADO_ONDAS
+  const tela = document.createElement('canvas')
+  tela.width = tela.height = lado
+  const ctx = tela.getContext('2d') as CanvasRenderingContext2D
+  const r = lado / 4
+  const leque = (cx: number, cy: number): void => {
+    ctx.fillStyle = fundo
+    ctx.beginPath()
+    ctx.arc(cx, cy, r * 2, Math.PI, 2 * Math.PI)
+    ctx.fill()
+    ctx.strokeStyle = cor
+    for (let i = 1; i <= 4; i++) {
+      ctx.lineWidth = i === 4 ? 2 : 1.2
+      ctx.beginPath()
+      ctx.arc(cx, cy, (r * 2 * i) / 4 - 1, Math.PI, 2 * Math.PI)
+      ctx.stroke()
+    }
+  }
+  // De cima para baixo: cada fileira cobre a metade de baixo da anterior.
+  for (let fileira = 0; fileira <= 4; fileira++) {
+    const y = fileira * r
+    const deslocamento = fileira % 2 === 0 ? 0 : r * 2
+    for (let x = -lado; x <= lado * 2; x += r * 4) leque(x + deslocamento, y)
+  }
+  return Texture.from(tela)
+}
+
 export class MotorDoMapa {
   private readonly app = new Application()
   private readonly mundo = new Container()
@@ -272,6 +303,10 @@ export class MotorDoMapa {
   private readonly camadaAneis = new Graphics()
   private readonly camadaRotulos = new Container()
   private texturaHalo: Texture | null = null
+  /** Mar de ondas atrás do mapa, só nos temas de gravura. */
+  private ondas: TilingSprite | null = null
+  private paleta: PaletaDoMapa = PALETAS.padrao
+  private corPorTag = new Map<string, string>()
 
   private worker: Worker | null = null
   private observador: ResizeObserver | null = null
@@ -373,6 +408,7 @@ export class MotorDoMapa {
       this.camadaRotulos
     )
     this.app.stage.addChild(this.mundo)
+    this.montarOndas()
 
     // A origem do mapa começa no centro do palco, como na biblioteca antiga.
     this.camera = { x: this.largura / 2, y: this.altura / 2, k: 1 }
@@ -428,6 +464,62 @@ export class MotorDoMapa {
     this.texturaHalo = null
   }
 
+  /**
+   * Troca a paleta do mapa. Só desenho: posições, câmera e física não mudam,
+   * então o mapa troca de roupa sem se mexer.
+   */
+  definirTema(tema: TemaId): void {
+    if (this.paleta.id === tema) return
+    this.paleta = PALETAS[tema]
+    for (const ilha of this.ilhas.values()) {
+      this.pintarIlha(ilha)
+      this.estilizarRotulo(ilha)
+    }
+    this.montarOndas()
+    this.agendar()
+  }
+
+  private montarOndas(): void {
+    if (this.destruido) return
+    const anterior = this.ondas
+    if (anterior) {
+      this.app.stage.removeChild(anterior)
+      anterior.destroy({ texture: true, textureSource: true })
+      this.ondas = null
+    }
+    const config = this.paleta.ondas
+    if (!config) return
+    const ondas = new TilingSprite({
+      texture: criarTexturaOndas(config.cor, config.fundo),
+      width: this.largura,
+      height: this.altura
+    })
+    ondas.alpha = config.alpha
+    this.app.stage.addChildAt(ondas, 0)
+    this.ondas = ondas
+  }
+
+  /** A cor da ilha no tema atual: a dela, a da primeira tag, ou a neutra. */
+  private pintarIlha(ilha: IlhaVisual): void {
+    const dados = ilha.dados
+    const bruta = dados.cor ?? this.corPorTag.get(dados.tags[0] ?? '')
+    ilha.cor = dados.ausente
+      ? this.paleta.ausente
+      : bruta
+        ? corNoTema(bruta, this.paleta.id)
+        : this.paleta.neutra
+    this.desenharCorpo(ilha)
+  }
+
+  private estilizarRotulo(ilha: IlhaVisual): void {
+    const estilo = ilha.rotulo.style
+    estilo.fill = ilha.dados.ausente ? this.paleta.rotuloAusente : this.paleta.rotulo
+    estilo.fontFamily = this.paleta.fonte
+    estilo.stroke = this.paleta.rotuloContorno
+      ? { color: this.paleta.rotuloContorno, width: 3, join: 'round' }
+      : { width: 0 }
+  }
+
   // --- Entrada de dados vinda do React ----------------------------------------
 
   definirAcoes(acoes: AcoesDoPalco): void {
@@ -453,7 +545,7 @@ export class MotorDoMapa {
       this.jaEnquadrou = false
     }
 
-    const corPorTag = new Map(mapa.tags.map((t) => [t.nome, t.cor]))
+    this.corPorTag = new Map(mapa.tags.map((t) => [t.nome, t.cor]))
     const grau = new Map<string, number>()
     for (const ponte of mapa.pontes) {
       grau.set(ponte.origem, (grau.get(ponte.origem) ?? 0) + 1)
@@ -483,12 +575,9 @@ export class MotorDoMapa {
 
       ilha.dados = dados
       ilha.grau = grau.get(dados.id) ?? 0
-      ilha.cor = dados.ausente
-        ? COR_AUSENTE
-        : (dados.cor ?? corPorTag.get(dados.tags[0] ?? '') ?? COR_NEUTRA)
       ilha.frescor = frescor(diasSemUso(dados))
-      this.desenharCorpo(ilha)
-      ilha.rotulo.style.fill = dados.ausente ? COR_ROTULO_AUSENTE : COR_ROTULO
+      this.pintarIlha(ilha)
+      this.estilizarRotulo(ilha)
 
       // Quem está sendo arrastada fica de fora: a posição dela é do mouse, e uma
       // recarga no meio do gesto arrancaria a ilha da mão do usuário.
@@ -674,7 +763,12 @@ export class MotorDoMapa {
 
     const rotulo = new Text({
       text: dados.id,
-      style: { fontFamily: FAMILIA_FONTE, fontSize: FONTE_BASE, fontWeight: '400', fill: COR_ROTULO },
+      style: {
+        fontFamily: this.paleta.fonte,
+        fontSize: FONTE_BASE,
+        fontWeight: '400',
+        fill: this.paleta.rotulo
+      },
       resolution: this.resolucaoAtual()
     })
     rotulo.anchor.set(0.5, 0)
@@ -687,7 +781,7 @@ export class MotorDoMapa {
     return {
       id: dados.id,
       dados,
-      cor: COR_NEUTRA,
+      cor: this.paleta.neutra,
       grau: 0,
       alpha: 1,
       realce: 0,
@@ -705,19 +799,34 @@ export class MotorDoMapa {
   }
 
   /**
-   * Desenha o círculo uma vez, branco; a cor vem do `tint` e o tamanho da escala.
+   * Desenha o círculo já na cor da ilha; o tamanho vem da escala. Só redesenha
+   * quando cor, tema ou estado mudam. Nos temas de gravura a ilha ganha contorno
+   * de nanquim, como as figuras da xilogravura.
    * Ilha ausente é contorno tracejado: existe no mapa, não existe no disco.
    */
   private desenharCorpo(ilha: IlhaVisual): void {
     const base = raioDaIlha(ilha)
-    const assinatura = ilha.dados.ausente ? `ausente:${base}` : 'cheio'
+    const nanquim = this.paleta.nanquim
+    const assinatura = ilha.dados.ausente
+      ? `ausente:${base}:${ilha.cor}`
+      : `cheio:${ilha.cor}:${nanquim ?? ''}`
     if (assinatura === ilha.corpoDesenhado) return
     ilha.corpoDesenhado = assinatura
 
     const g = ilha.corpo
     g.clear()
     if (!ilha.dados.ausente) {
-      g.circle(0, 0, RAIO_CORPO).fill(0xffffff)
+      g.circle(0, 0, RAIO_CORPO).fill(ilha.cor)
+      if (nanquim) {
+        // Contorno proporcional ao corpo, como o traço do entalhe.
+        g.circle(0, 0, RAIO_CORPO - 0.6).stroke({ width: 1.3, color: nanquim, alpha: 0.9 })
+        // Brilho de papel no alto: a cor chapada ganha um degrau de luz.
+        g.arc(0, 0, RAIO_CORPO * 0.62, Math.PI * 1.1, Math.PI * 1.55).stroke({
+          width: 1.1,
+          color: 0xffffff,
+          alpha: 0.45
+        })
+      }
       return
     }
 
@@ -730,7 +839,7 @@ export class MotorDoMapa {
       g.arc(0, 0, RAIO_CORPO, inicio, inicio + passo / 2)
     }
     // A espessura é no espaço do círculo de raio 10; convertida para 1,2 no mapa.
-    g.stroke({ width: (1.2 * RAIO_CORPO) / base, color: 0xffffff })
+    g.stroke({ width: (1.2 * RAIO_CORPO) / base, color: ilha.cor })
   }
 
   /** Avança as animações das ilhas e posiciona tudo. Devolve `true` se algo ainda se move. */
@@ -805,7 +914,6 @@ export class MotorDoMapa {
       corpo.visible = true
       corpo.position.set(ix, iy)
       corpo.scale.set(raio / RAIO_CORPO)
-      corpo.tint = ilha.cor
       corpo.alpha = opacidade
 
       // Halo: o alcance cresce junto com o realce; tamanho fixo só mudando de
@@ -829,21 +937,25 @@ export class MotorDoMapa {
         const avanco = 1 - Math.pow(1 - ciclo, 2)
         aneis
           .circle(ix, iy, raio + 3 + avanco * 14)
-          .stroke({ width: 2.5 * (1 - avanco * 0.6), color: COR_DESTAQUE, alpha: opacidade * (1 - avanco) })
+          .stroke({
+            width: 2.5 * (1 - avanco * 0.6),
+            color: this.paleta.destaque,
+            alpha: opacidade * (1 - avanco)
+          })
         aneis
           .circle(ix, iy, raio + 3)
-          .stroke({ width: 2, color: COR_DESTAQUE, alpha: opacidade })
+          .stroke({ width: 2, color: this.paleta.destaque, alpha: opacidade })
       } else if (ehSelecionado) {
         aneis.circle(ix, iy, raio + 2.5 + 1.5 * realceRecortado).stroke({
           width: 1.5,
-          color: 0xffffff,
+          color: this.paleta.anel,
           alpha: opacidade * (0.45 + 0.55 * realceRecortado)
         })
       } else if (ilha.fx !== undefined) {
         // Anel discreto marcando que a posição está fixada.
         aneis
           .circle(ix, iy, raio + 2.5)
-          .stroke({ width: 1, color: 0xffffff, alpha: 0.28 * opacidade })
+          .stroke({ width: 1, color: this.paleta.anel, alpha: 0.28 * opacidade })
       }
 
       // Com muito zoom-out o texto vira borrão: some numa faixa, não num limiar.
@@ -899,14 +1011,16 @@ export class MotorDoMapa {
       }
       if (ponte.foco !== alvoFoco || ponte.apagado !== alvoApagado) inquieto = true
 
-      // Espessura em pixels de tela, como antes: não engorda com o zoom.
-      g.moveTo(pa.x, pa.y)
-        .lineTo(pb.x, pb.y)
-        .stroke({
-          width: (1 + 0.8 * ponte.foco) / k,
-          color: misturar(RGB_PONTE, RGB_PONTE_ACESA, ponte.foco),
-          alpha: 1 - 0.8 * ponte.apagado
-        })
+      const cor = misturar(this.paleta.ponte, this.paleta.ponteAcesa, ponte.foco)
+      const alpha = 1 - 0.8 * ponte.apagado
+      if (this.paleta.pincel) {
+        this.pincelar(g, pa, pb, (2.2 + 1.4 * ponte.foco) / k, cor, alpha)
+      } else {
+        // Espessura em pixels de tela, como antes: não engorda com o zoom.
+        g.moveTo(pa.x, pa.y)
+          .lineTo(pb.x, pb.y)
+          .stroke({ width: (1 + 0.8 * ponte.foco) / k, color: cor, alpha })
+      }
 
       // Partículas correndo pelas pontes do hover: mostram quais pontes saem
       // dali sem precisar ler rótulo nenhum. Fora do hover, nada se move.
@@ -916,12 +1030,61 @@ export class MotorDoMapa {
           const t = (agora * VELOCIDADE_PARTICULA + i / PARTICULAS_POR_PONTE) % 1
           particulas
             .circle(pa.x + (pb.x - pa.x) * t, pa.y + (pb.y - pa.y) * t, raioParticula)
-            .fill({ color: COR_DESTAQUE, alpha: ponte.foco })
+            .fill({ color: this.paleta.destaque, alpha: ponte.foco })
         }
       }
     }
 
     return inquieto
+  }
+
+  /**
+   * Ponte como pincelada: um fuso que engrossa no meio e afina nas pontas, com
+   * uma leve curva, como o traço de pincel da gravura. `largura` é a do meio.
+   */
+  private pincelar(
+    g: Graphics,
+    pa: { x: number; y: number },
+    pb: { x: number; y: number },
+    largura: number,
+    cor: number,
+    alpha: number
+  ): void {
+    const dx = pb.x - pa.x
+    const dy = pb.y - pa.y
+    const comprimento = Math.hypot(dx, dy)
+    if (comprimento < 1) return
+    // Normal unitária: para onde o traço engorda.
+    const nx = -dy / comprimento
+    const ny = dx / comprimento
+    // A curva vai sempre para o mesmo lado da ponte, então não "vira" entre quadros.
+    const curva = Math.min(10, comprimento * 0.06)
+    const mx = (pa.x + pb.x) / 2 + nx * curva
+    const my = (pa.y + pb.y) / 2 + ny * curva
+    const meia = largura / 2
+    const ponta = meia * 0.18
+    g.moveTo(pa.x + nx * ponta, pa.y + ny * ponta)
+      .quadraticCurveTo(mx + nx * meia * 2, my + ny * meia * 2, pb.x + nx * ponta, pb.y + ny * ponta)
+      .lineTo(pb.x - nx * ponta, pb.y - ny * ponta)
+      .quadraticCurveTo(mx - nx * meia * 2, my - ny * meia * 2, pa.x - nx * ponta, pa.y - ny * ponta)
+      .closePath()
+      .fill({ color: cor, alpha })
+  }
+
+  /** O mar acompanha a câmera mais devagar que as ilhas e deriva bem de leve. */
+  private moverOndas(agora: number): void {
+    const ondas = this.ondas
+    if (!ondas) return
+    if (ondas.width !== this.largura || ondas.height !== this.altura) {
+      ondas.width = this.largura
+      ondas.height = this.altura
+    }
+    // O ladrilho cresce e encolhe com o zoom, mas pouco: de longe o padrão vira
+    // textura, de perto não vira um borrão gigante.
+    const escala = Math.min(1.8, Math.max(0.6, Math.pow(this.camera.k, 0.35)))
+    ondas.tileScale.set(escala)
+    const deriva = this.semAnimacao ? 0 : (agora / 1000) * DERIVA_ONDAS
+    ondas.tilePosition.set(this.camera.x * PARALAXE_ONDAS + deriva, this.camera.y * PARALAXE_ONDAS)
   }
 
   // --- Câmera -----------------------------------------------------------------
@@ -1045,6 +1208,7 @@ export class MotorDoMapa {
     let inquieto = this.atualizarCamera(passos)
     inquieto = this.atualizarIlhas(passos, agora) || inquieto
     inquieto = this.desenharPontes(passos, agora) || inquieto
+    this.moverOndas(agora)
     if (!inquieto) this.ajustarNitidez()
 
     this.app.render()

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Mapa, Ilha } from '@shared/types'
+import { corNoTema } from '../lib/tema'
 import { useStore } from '../state/store'
 
 /** Tipo de dado do arrastar, usado para o mapa saber que a origem foi a lista. */
@@ -78,6 +79,7 @@ export default function Sidebar({
   onTirarDoMapa
 }: Props): React.JSX.Element {
   const t = useStore((e) => e.t)
+  const tema = useStore((e) => e.tema)
   const [arrastando, setArrastando] = useState<string | null>(null)
   const [alvo, setAlvo] = useState<string | null>(null)
   /** `true` enquanto o arraste em curso ainda está por cima da janela. */
@@ -167,7 +169,7 @@ export default function Sidebar({
             <button
               key={tag.nome}
               className={filtroTag === tag.nome ? 'chip-tag ativo' : 'chip-tag'}
-              style={{ '--cor-tag': tag.cor } as React.CSSProperties}
+              style={{ '--cor-tag': corNoTema(tag.cor, tema) } as React.CSSProperties}
               onClick={() => onFiltroTag(tag.nome)}
               title={t.pastasComATag(contagemPorTag.get(tag.nome) ?? 0)}
             >
@@ -246,8 +248,10 @@ export default function Sidebar({
             <span
               className="ponto-cor"
               style={{
-                background:
-                  ilha.cor ?? mapa.tags.find((t) => t.nome === ilha.tags[0])?.cor ?? '#6b6b78'
+                background: corNoTema(
+                  ilha.cor ?? mapa.tags.find((t) => t.nome === ilha.tags[0])?.cor ?? '#6b6b78',
+                  tema
+                )
               }}
             />
             <span className="item-nome">{ilha.id}</span>
