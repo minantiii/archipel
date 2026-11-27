@@ -131,7 +131,7 @@ Ao migrar suas pastas de verdade, vá em lotes de 3 a 5 e confira no Explorer en
 | Abrir no Explorer | duplo clique — na bolinha do mapa ou na linha da lista |
 | Menu de ações | botão direito |
 | Modo conexão | `L` |
-| Limpar seleção | `Esc` |
+| Limpar seleção, ou sair do modo conexão | `Esc` |
 | Renomear | duplo clique no título do painel |
 | Desfazer a última movimentação | `Ctrl` + `Z` |
 | Esconder a lista | `Ctrl` + `B` |

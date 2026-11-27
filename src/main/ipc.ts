@@ -58,7 +58,7 @@ function janelaDe(evento: Electron.IpcMainInvokeEvent): BrowserWindow | null {
 }
 
 async function acharIlha(raiz: string, id: string): Promise<Ilha> {
-  const ilha = (await carregarMapa(raiz)).ilhas.find((n) => n.id === id)
+  const ilha = (await lerMapa(raiz)).ilhas.find((n) => n.id === id)
   if (!ilha) throw new Error(t().pastaForaDoMapa(id))
   return ilha
 }
@@ -83,7 +83,11 @@ async function caminhoUsavel(id: string): Promise<string> {
  */
 async function registrarUso(id: string): Promise<void> {
   try {
-    await marcarAcesso(await raizObrigatoria(), id)
+    const raiz = await raizObrigatoria()
+    // Na fila como qualquer outra escrita: é um lê-altera-grava no mesmo `.md`
+    // que o `salvarMeta` mexe, e fora dela um carimbo podia apagar uma tag
+    // gravada no mesmo instante.
+    await enfileirar(() => marcarAcesso(raiz, id))
   } catch {
     // Silêncio proposital: veja o comentário acima.
   }
@@ -150,7 +154,7 @@ async function tentar<T>(acao: () => Promise<T | ComAviso<T>>): Promise<Resultad
  * prática, mas "na prática" não é garantia: o watcher, um atalho repetido ou um
  * segundo clique rápido podiam intercalar leitura e escrita — `desfazerUltima`,
  * por exemplo, lê o histórico e só depois age. Aqui isso passa a ser impossível por
- * construção. Só operações de escrita entram; leitura não espera ninguém.
+ * construção. A varredura do mapa entra também — veja `lerMapa`.
  */
 let fila: Promise<unknown> = Promise.resolve()
 
@@ -159,6 +163,21 @@ function enfileirar<T>(acao: () => Promise<T>): Promise<T> {
   // A fila não pode morrer por causa de uma operação que falhou.
   fila = proxima.catch(() => undefined)
   return proxima
+}
+
+/**
+ * Varre o disco e devolve o mapa — pela fila, como as escritas.
+ *
+ * A varredura não é só leitura: ela cria o `.md` de pasta nova, apaga o de pasta
+ * que sumiu e regrava o `config.yaml`. Rodando solta, ela cruzava com as
+ * operações da fila — pegar um renomear no meio (pasta já com o nome novo, `.md`
+ * ainda com o antigo) fazia a varredura apagar o `.md` "órfão", e com ele as
+ * tags e o diário da pasta.
+ *
+ * Nunca chame de dentro de uma ação já enfileirada: ela esperaria por si mesma.
+ */
+function lerMapa(raiz: string): Promise<Mapa> {
+  return enfileirar(() => carregarMapa(raiz))
 }
 
 /**
@@ -176,7 +195,7 @@ async function moverParaDentroDoMapa(
   // uma pasta e a seguinte, e o log sai na ordem em que o usuário escolheu.
   const relatorio = await enfileirar(() => moverVarias(raiz, origens))
 
-  const mapa = await carregarMapa(raiz)
+  const mapa = await lerMapa(raiz)
   const relato = relatarLote(relatorio, idiomaAtual())
   return relato ? new ComAviso(mapa, relato) : mapa
 }
@@ -226,7 +245,7 @@ export function registrarIpc(): void {
     // em vez de estourar um erro que o usuário não sabe resolver.
     if (!raiz || !(await ehDiretorio(raiz))) return null
     await sincronizarObservador(raiz)
-    return carregarMapa(raiz)
+    return lerMapa(raiz)
   })
 
   ipcMain.handle(
@@ -238,7 +257,7 @@ export function registrarIpc(): void {
       // gravou. O seletor de cor dispara uma chamada por movimento do mouse, e
       // era assim que uma tag recém-criada sumia sozinha do frontmatter.
       await enfileirar(() => salvarMeta(raiz, id, patch))
-      return carregarMapa(raiz)
+      return lerMapa(raiz)
     }
   )
 
@@ -250,7 +269,7 @@ export function registrarIpc(): void {
       const config = await lerConfig(raiz)
       await gravarConfig(raiz, { tags: config.tags, ordem: ids })
     })
-    return carregarMapa(raiz)
+    return lerMapa(raiz)
   })
 
   ipcMain.handle(
@@ -260,7 +279,7 @@ export function registrarIpc(): void {
       // Mesma fila do `salvarMeta`: conectar reescreve o corpo do `.md` a partir
       // do que leu, e cruzar com outra escrita perderia uma das duas.
       await enfileirar(() => conectar(raiz, origem, destino))
-      return carregarMapa(raiz)
+      return lerMapa(raiz)
     }
   )
 
@@ -269,7 +288,7 @@ export function registrarIpc(): void {
     async (_evento, origem: string, destino: string): Promise<Mapa> => {
       const raiz = await raizObrigatoria()
       await enfileirar(() => desconectar(raiz, origem, destino))
-      return carregarMapa(raiz)
+      return lerMapa(raiz)
     }
   )
 
@@ -281,7 +300,7 @@ export function registrarIpc(): void {
         // Renomear também mexe em pasta no disco e reescreve vários `.md`:
         // entra na mesma fila para não cruzar com uma movimentação.
         await enfileirar(() => renomearPasta(raiz, id, novoNome))
-        return carregarMapa(raiz)
+        return lerMapa(raiz)
       })
   )
 
@@ -344,10 +363,10 @@ export function registrarIpc(): void {
       })
 
       const origens = escolha.canceled ? [] : escolha.filePaths
-      if (origens.length === 0) return carregarMapa(raiz)
+      if (origens.length === 0) return lerMapa(raiz)
 
       const autorizado = await confirmar(janela, confirmacaoDoLote(raiz, origens, idiomaAtual()))
-      if (!autorizado) return carregarMapa(raiz)
+      if (!autorizado) return lerMapa(raiz)
 
       return moverParaDentroDoMapa(raiz, origens)
     })
@@ -373,7 +392,7 @@ export function registrarIpc(): void {
         // O que não for pasta segue no lote de propósito, para voltar com nome
         // e motivo na lista de quem ficou de fora.
         const origens = caminhos.filter((caminho) => !mesmoCaminho(dirname(caminho), raiz))
-        if (origens.length === 0) return carregarMapa(raiz)
+        if (origens.length === 0) return lerMapa(raiz)
 
         return moverParaDentroDoMapa(raiz, origens)
       })
@@ -393,7 +412,7 @@ export function registrarIpc(): void {
           return novo
         })
 
-        return { mapa: await carregarMapa(raiz), id }
+        return { mapa: await lerMapa(raiz), id }
       })
   )
 
@@ -414,7 +433,7 @@ export function registrarIpc(): void {
           // "Cancelar" de propósito.
           padraoCancelar: true
         })
-        if (!autorizado) return carregarMapa(raiz)
+        if (!autorizado) return lerMapa(raiz)
 
         await enfileirar(async () => {
           // Lixeira, e não `fs.rm`: apagar de verdade não teria volta, e este é
@@ -423,7 +442,7 @@ export function registrarIpc(): void {
           await esquecerMeta(raiz, id)
         })
 
-        return carregarMapa(raiz)
+        return lerMapa(raiz)
       })
   )
 
@@ -443,7 +462,7 @@ export function registrarIpc(): void {
         })
 
         const pastaDestino = escolha.filePaths[0]
-        if (escolha.canceled || !pastaDestino) return carregarMapa(raiz)
+        if (escolha.canceled || !pastaDestino) return lerMapa(raiz)
 
         const destino = join(pastaDestino, basename(ilha.caminho))
         const autorizado = await confirmar(janela, {
@@ -452,14 +471,14 @@ export function registrarIpc(): void {
           detalhe: t().tirarDoMapaDetalhe(ilha.caminho, destino),
           botao: t().mover
         })
-        if (!autorizado) return carregarMapa(raiz)
+        if (!autorizado) return lerMapa(raiz)
 
         const { aviso } = await enfileirar(async () => {
           const resultado = await moverPasta(raiz, ilha.caminho, destino)
           await esquecerMeta(raiz, id)
           return resultado
         })
-        const mapa = await carregarMapa(raiz)
+        const mapa = await lerMapa(raiz)
         return aviso ? new ComAviso(mapa, aviso) : mapa
       })
   )
@@ -481,10 +500,10 @@ export function registrarIpc(): void {
         detalhe: t().desfazerDetalhe(ultima.para, ultima.de),
         botao: t().desfazerBotao
       })
-      if (!autorizado) return carregarMapa(raiz)
+      if (!autorizado) return lerMapa(raiz)
 
       const { aviso } = await enfileirar(() => desfazerUltima(raiz))
-      const mapa = await carregarMapa(raiz)
+      const mapa = await lerMapa(raiz)
       return aviso ? new ComAviso(mapa, aviso) : mapa
     })
   )

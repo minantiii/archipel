@@ -33,7 +33,11 @@ export default function ContextMenu({ x, y, titulo, itens, onFechar }: Props): R
       if (!ref.current?.contains(evento.target as Node)) onFechar()
     }
     const aoTeclar = (evento: KeyboardEvent): void => {
-      if (evento.key === 'Escape') onFechar()
+      if (evento.key !== 'Escape') return
+      // O `Esc` é do menu e para aqui: seguindo adiante ele chegava ao atalho
+      // global, que além de fechar o menu limpava a seleção por baixo dele.
+      evento.stopPropagation()
+      onFechar()
     }
 
     window.addEventListener('mousedown', aoClicar, true)

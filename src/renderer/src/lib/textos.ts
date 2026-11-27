@@ -26,6 +26,10 @@ const PT = {
   adicionarPasta: 'Adicionar pasta',
   recarregar: 'Recarregar',
   modoConexao: 'Modo conexão (L)',
+  esconderLista: 'Esconder a lista (Ctrl+B)',
+  mostrarLista: 'Mostrar a lista (Ctrl+B)',
+  esconderListaRotulo: 'Esconder a barra lateral',
+  mostrarListaRotulo: 'Mostrar a barra lateral',
   contagem: (ilhas: number, pontes: number) =>
     `${ilhas} ${ilhas === 1 ? 'ilha' : 'ilhas'} · ${pontes} ${pontes === 1 ? 'ponte' : 'pontes'}`,
 
@@ -83,6 +87,7 @@ const PT = {
   criarPastaAqui: 'Criar pasta aqui',
   adicionarExistente: 'Adicionar pasta existente…',
   abrirTerminalNoMapa: 'Abrir terminal no mapa',
+  menuDoMapa: 'Mapa',
 
   // Soltar pastas vindas do Explorer
   soltarTitulo: 'Solte para mover para o mapa',
@@ -98,6 +103,10 @@ const PT = {
 
   // Faixas
   entendi: 'entendi',
+  dispensar: 'dispensar',
+  sair: 'sair',
+  modoConexaoLigado: 'Modo conexão ligado — clique na primeira pasta e depois na segunda.',
+  conectandoDe: (nome: string) => `Conectando a partir de "${nome}" — clique na outra pasta.`,
   desfazer: 'Desfazer',
   desfazerMovimentacao: (nome: string) => `Última movimentação: ${nome}`,
   modoConexaoAtivo: 'Modo conexão: clique de uma ilha até outra para criar a ponte.',
@@ -116,6 +125,10 @@ const EN: typeof PT = {
   adicionarPasta: 'Add folder',
   recarregar: 'Reload',
   modoConexao: 'Bridge mode (L)',
+  esconderLista: 'Hide the list (Ctrl+B)',
+  mostrarLista: 'Show the list (Ctrl+B)',
+  esconderListaRotulo: 'Hide the sidebar',
+  mostrarListaRotulo: 'Show the sidebar',
   contagem: (ilhas: number, pontes: number) =>
     `${ilhas} ${ilhas === 1 ? 'island' : 'islands'} · ${pontes} ${pontes === 1 ? 'bridge' : 'bridges'}`,
 
@@ -170,6 +183,7 @@ const EN: typeof PT = {
   criarPastaAqui: 'Create folder here',
   adicionarExistente: 'Add existing folder…',
   abrirTerminalNoMapa: 'Open terminal at the map',
+  menuDoMapa: 'Map',
 
   soltarTitulo: 'Drop to move onto the map',
   soltarDestino: (raiz: string) => `The folders will live in ${raiz}`,
@@ -182,6 +196,10 @@ const EN: typeof PT = {
   enquadrarRotulo: 'Center the view on the islands',
 
   entendi: 'got it',
+  dispensar: 'dismiss',
+  sair: 'exit',
+  modoConexaoLigado: 'Bridge mode is on — click the first folder, then the second.',
+  conectandoDe: (nome: string) => `Bridging from "${nome}" — click the other folder.`,
   desfazer: 'Undo',
   desfazerMovimentacao: (nome: string) => `Last move: ${nome}`,
   modoConexaoAtivo: 'Bridge mode: click from one island to another to build the bridge.',

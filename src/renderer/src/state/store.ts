@@ -41,7 +41,14 @@ interface Estado {
 
   iniciar: () => Promise<void>
   escolherMapa: () => Promise<void>
-  recarregar: () => Promise<void>
+  /**
+   * Relê o mapa do disco.
+   *
+   * `silencioso` é para a recarga que ninguém pediu — a do observador de
+   * arquivos. Ela não acende a barra de carregamento, não desabilita botão e
+   * não apaga a mensagem de erro que o usuário talvez ainda esteja lendo.
+   */
+  recarregar: (opcoes?: { silencioso?: boolean }) => Promise<void>
   selecionar: (id: string | null) => void
   fixar: (id: string, pos: Posicao | null) => Promise<void>
   abrirNoExplorer: (id: string) => Promise<void>
@@ -78,6 +85,120 @@ function mensagemDoErro(erro: unknown): string {
   return erro instanceof Error ? erro.message : String(erro)
 }
 
+/**
+ * Cores escolhidas no seletor que o disco ainda não confirmou, por id.
+ *
+ * O seletor de cor dispara uma mudança por movimento do mouse. Gravar cada uma
+ * era uma escrita mais uma varredura inteira do mapa por pixel arrastado; agora
+ * a tela mostra a cor na hora e o disco só recebe a última, quando o mouse para.
+ */
+const coresPendentes = new Map<string, { cor: string; timer: ReturnType<typeof setTimeout> }>()
+
+/** Quanto o seletor de cor precisa ficar parado para a cor ir ao disco. */
+const ESPERA_COR_MS = 140
+
+/** Pinta por cima do mapa vindo do disco as cores que ainda estão a caminho dele. */
+function comCoresPendentes(mapa: Mapa): Mapa {
+  if (coresPendentes.size === 0) return mapa
+
+  let mudou = false
+  const ilhas = mapa.ilhas.map((ilha) => {
+    const pendente = coresPendentes.get(ilha.id)
+    if (!pendente || pendente.cor === ilha.cor) return ilha
+    mudou = true
+    return { ...ilha, cor: pendente.cor }
+  })
+  return mudou ? { ...mapa, ilhas } : mapa
+}
+
+/**
+ * `true` quando os dois valores dizem a mesma coisa, ainda que sejam objetos
+ * diferentes. Tudo aqui veio do IPC, então é JSON puro e com as chaves sempre
+ * na mesma ordem.
+ */
+function mesmoConteudo(a: unknown, b: unknown): boolean {
+  return a === b || JSON.stringify(a) === JSON.stringify(b)
+}
+
+/**
+ * O pedaço do estado que acompanha um mapa recém-chegado do disco.
+ *
+ * Dois cuidados moram aqui, num lugar só, para valer em toda operação:
+ *
+ *  1. Mapa igual ao que já está na tela **mantém o objeto antigo**. Quase toda
+ *     gravação volta em eco pelo observador de arquivos, e trocar o objeto por um
+ *     idêntico redesenhava a lista inteira e reaquecia a simulação do mapa à toa.
+ *  2. Nada pode ficar apontando para o que sumiu: seleção numa ilha que saiu,
+ *     ponta de conexão que não existe mais, filtro por uma tag que acabou — este
+ *     último deixava o mapa inteiro apagado, sem chip nenhum para desligar.
+ */
+function assentar(estado: Estado, recebido: Mapa | null): Partial<Estado> {
+  const pintado = recebido && comCoresPendentes(recebido)
+  const mapa = pintado && estado.mapa && mesmoConteudo(estado.mapa, pintado) ? estado.mapa : pintado
+
+  const existe = (id: string | null): boolean =>
+    id !== null && mapa !== null && mapa.ilhas.some((ilha) => ilha.id === id)
+  const tagExiste =
+    estado.filtroTag !== null && mapa !== null && mapa.tags.some((t) => t.nome === estado.filtroTag)
+
+  return {
+    mapa,
+    selecionado: existe(estado.selecionado) ? estado.selecionado : null,
+    conectandoDe: existe(estado.conectandoDe) ? estado.conectandoDe : null,
+    filtroTag: tagExiste ? estado.filtroTag : null
+  }
+}
+
+/** Devolve o próprio estado quando o parcial não muda nada — o zustand então nem avisa ninguém. */
+function seMudou(estado: Estado, parcial: Partial<Estado>): Estado | Partial<Estado> {
+  const chaves = Object.keys(parcial) as (keyof Estado)[]
+  return chaves.some((chave) => !Object.is(estado[chave], parcial[chave])) ? parcial : estado
+}
+
+type Definir = (parcial: Partial<Estado> | ((estado: Estado) => Estado | Partial<Estado>)) => void
+
+/** Põe na tela um mapa vindo do disco. */
+function receber(mapa: Mapa | null): void {
+  useStore.setState((estado) => assentar(estado, mapa))
+}
+
+function soltarCorPendente(id: string): void {
+  const pendente = coresPendentes.get(id)
+  if (!pendente) return
+  clearTimeout(pendente.timer)
+  coresPendentes.delete(id)
+}
+
+/** Mostra a cor agora e agenda a gravação para quando o seletor sossegar. */
+function pintar(id: string, cor: string): void {
+  soltarCorPendente(id)
+
+  const timer = setTimeout(() => {
+    // Só solta a pendência se ninguém escolheu outra cor enquanto o disco
+    // gravava esta — senão a resposta desta gravação repintaria a ilha com a
+    // cor velha por um instante.
+    const concluir = (): void => {
+      if (coresPendentes.get(id)?.timer === timer) coresPendentes.delete(id)
+    }
+
+    window.api.pasta.salvarMeta(id, { cor }).then(
+      (mapa) => {
+        concluir()
+        receber(mapa)
+      },
+      (erro: unknown) => {
+        concluir()
+        useStore.setState({ erro: mensagemDoErro(erro) })
+        // A cor mostrada nunca chegou ao disco: a tela volta ao que está lá.
+        void useStore.getState().recarregar({ silencioso: true })
+      }
+    )
+  }, ESPERA_COR_MS)
+
+  coresPendentes.set(id, { cor, timer })
+  receber(useStore.getState().mapa)
+}
+
 export const useStore = create<Estado>((set, get) => ({
   raiz: null,
   mapa: null,
@@ -112,29 +233,39 @@ export const useStore = create<Estado>((set, get) => ({
     try {
       const raiz = await window.api.mapa.escolherRaiz()
       if (!raiz) return
-      set({ raiz, selecionado: null })
+      // Mapa novo, tela limpa: a busca, o filtro e a ponta de conexão eram do
+      // mapa anterior. O `mapa: null` desmonta o palco, para o novo nascer com
+      // câmera e posições próprias em vez de herdar as do antigo.
+      set({ raiz, mapa: null, selecionado: null, busca: '', filtroTag: null, conectandoDe: null })
       await get().recarregar()
     } catch (erro) {
       set({ erro: mensagemDoErro(erro) })
     }
   },
 
-  recarregar: async () => {
-    set({ carregando: true, erro: null })
+  recarregar: async (opcoes) => {
+    const silencioso = opcoes?.silencioso === true
+    if (!silencioso) set({ carregando: true, erro: null })
     try {
+      // O mapa é o último `await` de propósito: entre ele chegar e ir para a tela
+      // não sobra brecha para a resposta de outra operação entrar na frente e
+      // ser atropelada por este retrato, que já seria o mais velho dos dois.
+      const movimentacao = await window.api.pasta.ultimaMovimentacao()
       const mapa = await window.api.mapa.carregar()
-      const selecionado = get().selecionado
-      set({
-        mapa,
-        raiz: mapa?.raiz ?? null,
-        movimentacao: await window.api.pasta.ultimaMovimentacao(),
-        // Solta a seleção se a ilha sumiu do disco entre um carregamento e outro.
-        selecionado: mapa?.ilhas.some((n) => n.id === selecionado) ? selecionado : null
-      })
+
+      set((estado) =>
+        seMudou(estado, {
+          ...assentar(estado, mapa),
+          raiz: mapa?.raiz ?? null,
+          movimentacao: mesmoConteudo(estado.movimentacao, movimentacao)
+            ? estado.movimentacao
+            : movimentacao
+        })
+      )
     } catch (erro) {
       set({ erro: mensagemDoErro(erro) })
     } finally {
-      set({ carregando: false })
+      if (!silencioso) set({ carregando: false })
     }
   },
 
@@ -143,7 +274,7 @@ export const useStore = create<Estado>((set, get) => ({
   fixar: async (id, pos) => {
     try {
       // O mapa devolvido já vem do disco relido, então a tela nunca diverge dele.
-      set({ mapa: await window.api.pasta.salvarMeta(id, { pos }) })
+      receber(await window.api.pasta.salvarMeta(id, { pos }))
     } catch (erro) {
       set({ erro: mensagemDoErro(erro) })
     }
@@ -189,7 +320,7 @@ export const useStore = create<Estado>((set, get) => ({
 
       const { mapa, id } = resultado.dados
       // Já seleciona e marca para batizar: o painel abre com o nome em edição.
-      set({ mapa, selecionado: id, batizando: id })
+      set((estado) => ({ ...assentar(estado, mapa), selecionado: id, batizando: id }))
     } catch (erro) {
       set({ erro: mensagemDoErro(erro) })
     } finally {
@@ -209,13 +340,9 @@ export const useStore = create<Estado>((set, get) => ({
       const resultado = await window.api.pasta.apagar(id)
       if (!resultado.ok) return set({ erro: resultado.erro })
 
-      const mapa = resultado.dados
-      set({
-        mapa,
-        // A pasta apagada não existe mais: segurar a seleção nela deixaria um
-        // painel aberto sobre uma ilha que sumiu.
-        selecionado: mapa.ilhas.some((n) => n.id === get().selecionado) ? get().selecionado : null
-      })
+      // A pasta apagada não existe mais, e o `assentar` solta a seleção nela:
+      // segurá-la deixaria um painel aberto sobre uma ilha que sumiu.
+      receber(resultado.dados)
     } catch (erro) {
       set({ erro: mensagemDoErro(erro) })
     } finally {
@@ -240,15 +367,25 @@ export const useStore = create<Estado>((set, get) => ({
     set({ modoConexao: !get().modoConexao, conectandoDe: null, selecionado: null }),
 
   clicarEmModoConexao: async (id) => {
-    const origem = get().conectandoDe
+    const primeira = get().conectandoDe
 
     // Primeiro clique escolhe a ponta; clicar nela de novo desiste.
-    if (!origem) return set({ conectandoDe: id })
-    if (origem === id) return set({ conectandoDe: null })
+    if (!primeira) return set({ conectandoDe: id })
+    if (primeira === id) return set({ conectandoDe: null })
 
     set({ conectandoDe: null })
+
+    // A ponte é uma `[[ligação]]` escrita no `.md` de quem a origina, e ilha
+    // ausente não tem `.md`: partindo dela, a ligação ia para um arquivo que a
+    // varredura seguinte apagava, e o clique parecia não ter feito nada. Quem
+    // escreve é sempre a ponta que existe de verdade.
+    const ausente = (alvo: string): boolean =>
+      get().mapa?.ilhas.find((ilha) => ilha.id === alvo)?.ausente === true
+    if (ausente(primeira) && ausente(id)) return
+    const [origem, destino] = ausente(primeira) ? [id, primeira] : [primeira, id]
+
     try {
-      set({ mapa: await window.api.pasta.conectar(origem, id) })
+      receber(await window.api.pasta.conectar(origem, destino))
     } catch (erro) {
       set({ erro: mensagemDoErro(erro) })
     }
@@ -256,15 +393,23 @@ export const useStore = create<Estado>((set, get) => ({
 
   desconectar: async (origem, destino) => {
     try {
-      set({ mapa: await window.api.pasta.desconectar(origem, destino) })
+      receber(await window.api.pasta.desconectar(origem, destino))
     } catch (erro) {
       set({ erro: mensagemDoErro(erro) })
     }
   },
 
   salvarMeta: async (id, patch) => {
+    // Só a cor, e uma cor de verdade: é o seletor sendo arrastado.
+    if (typeof patch.cor === 'string' && Object.keys(patch).length === 1) {
+      return pintar(id, patch.cor)
+    }
+    // Qualquer outra palavra sobre a cor ("usar a da tag") vale mais que uma
+    // escolha do seletor que ainda nem tinha sido gravada.
+    if (patch.cor !== undefined) soltarCorPendente(id)
+
     try {
-      set({ mapa: await window.api.pasta.salvarMeta(id, patch) })
+      receber(await window.api.pasta.salvarMeta(id, patch))
     } catch (erro) {
       set({ erro: mensagemDoErro(erro) })
     }
@@ -277,26 +422,30 @@ export const useStore = create<Estado>((set, get) => ({
     if (mapa) set({ mapa: { ...mapa, ordem: ids } })
 
     try {
-      set({ mapa: await window.api.pasta.reordenar(ids) })
+      receber(await window.api.pasta.reordenar(ids))
     } catch (erro) {
-      set({ erro: mensagemDoErro(erro), mapa })
+      set({ erro: mensagemDoErro(erro) })
+      // A ordem mostrada não foi gravada: volta para a que está no disco.
+      void get().recarregar({ silencioso: true })
     }
   },
 
   renomear: async (id, novoNome) => {
+    const antes = new Set(get().mapa?.ilhas.map((ilha) => ilha.id))
     try {
       const resultado = await window.api.pasta.renomear(id, novoNome)
       if (!resultado.ok) return set({ erro: resultado.erro })
 
-      // O id mudou junto com o nome, então a seleção precisa seguir a ilha novo
-      // em vez de apontar para um id que não existe mais.
+      // O id mudou junto com o nome, então a seleção precisa seguir a ilha nova
+      // em vez de apontar para um id que não existe mais. A renomeada é a única
+      // que não estava no mapa de antes — procurar pelo fim do caminho confundia
+      // "api" com "minha-api" e selecionava a pasta errada.
       const mapa = resultado.dados
-      const selecionado = get().selecionado
-      set({
-        mapa,
-        selecionado: mapa.ilhas.some((n) => n.id === selecionado)
-          ? selecionado
-          : (mapa.ilhas.find((n) => n.caminho.endsWith(novoNome))?.id ?? null)
+      const renomeada = mapa.ilhas.find((ilha) => !antes.has(ilha.id))?.id ?? null
+      set((estado) => {
+        const assentado = assentar(estado, mapa)
+        const seguia = estado.selecionado === id && assentado.selecionado === null
+        return seguia ? { ...assentado, selecionado: renomeada } : assentado
       })
     } catch (erro) {
       set({ erro: mensagemDoErro(erro) })
@@ -311,19 +460,21 @@ export const useStore = create<Estado>((set, get) => ({
  * daqui nunca fica adiantado em relação ao que realmente aconteceu.
  */
 async function aplicarMovimentacao(
-  set: (parcial: Partial<Estado>) => void,
+  set: Definir,
   acao: () => Promise<Resultado<Mapa>>
 ): Promise<void> {
   set({ carregando: true, erro: null, aviso: null })
   try {
     const resultado = await acao()
     if (resultado.ok) {
-      set({
-        mapa: resultado.dados,
-        movimentacao: await window.api.pasta.ultimaMovimentacao(),
+      set((estado) => ({
+        ...assentar(estado, resultado.dados),
         // A operação deu certo: o que veio aqui é ressalva, não falha.
         aviso: resultado.aviso ?? null
-      })
+      }))
+      // Depois do mapa, e não junto: esperar por isto com o mapa na mão abria
+      // uma brecha para ele chegar à tela já vencido.
+      set({ movimentacao: await window.api.pasta.ultimaMovimentacao() })
     } else {
       set({ erro: resultado.erro })
     }

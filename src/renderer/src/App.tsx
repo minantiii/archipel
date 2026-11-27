@@ -128,7 +128,9 @@ export default function App(): React.JSX.Element {
   useEffect(() => {
     if (!raiz) return
     return window.api.mapa.aoMudar(() => {
-      void useStore.getState().recarregar()
+      // Silenciosa: ninguém pediu esta recarga, e na maior parte das vezes ela é
+      // só o eco de algo que o próprio app acabou de gravar.
+      void useStore.getState().recarregar({ silencioso: true })
     })
   }, [raiz])
 
@@ -205,7 +207,12 @@ export default function App(): React.JSX.Element {
       if (digitando || evento.ctrlKey || evento.altKey || evento.metaKey) return
 
       if (evento.key === 'l' || evento.key === 'L') alternarModoConexao()
-      if (evento.key === 'Escape') selecionar(null)
+      if (evento.key === 'Escape') {
+        // No modo conexão não há seleção para limpar, e o que o `Esc` desfaz ali
+        // é o próprio modo — antes ele simplesmente não fazia nada.
+        if (useStore.getState().modoConexao) alternarModoConexao()
+        else selecionar(null)
+      }
     }
 
     window.addEventListener('keydown', aoTeclar)
@@ -336,8 +343,8 @@ export default function App(): React.JSX.Element {
           <button
             className="botao-lateral"
             onClick={() => setLateralVisivel((visivel) => !visivel)}
-            title={lateralVisivel ? 'Esconder a lista (Ctrl+B)' : 'Mostrar a lista (Ctrl+B)'}
-            aria-label={lateralVisivel ? 'Esconder a barra lateral' : 'Mostrar a barra lateral'}
+            title={lateralVisivel ? t.esconderLista : t.mostrarLista}
+            aria-label={lateralVisivel ? t.esconderListaRotulo : t.mostrarListaRotulo}
             aria-pressed={!lateralVisivel}
           >
             {lateralVisivel ? '⟨' : '⟩'}
@@ -382,7 +389,7 @@ export default function App(): React.JSX.Element {
       {erro && (
         <div className="faixa-erro">
           {erro}
-          <button onClick={() => useStore.setState({ erro: null })}>dispensar</button>
+          <button onClick={() => useStore.setState({ erro: null })}>{t.dispensar}</button>
         </div>
       )}
 
@@ -397,10 +404,10 @@ export default function App(): React.JSX.Element {
 
       {modoConexao && (
         <div className="faixa-modo">
-          {conectandoDe
-            ? `Conectando a partir de "${conectandoDe}" — clique na outra pasta.`
-            : 'Modo conexão ligado — clique na primeira pasta e depois na segunda.'}
-          <button onClick={alternarModoConexao}>sair</button>
+          {/* Num `span` porque o pulso do CSS é do primeiro filho: com o texto
+              solto, o primeiro filho era o botão, e quem pulsava era o "sair". */}
+          <span>{conectandoDe ? t.conectandoDe(conectandoDe) : t.modoConexaoLigado}</span>
+          <button onClick={alternarModoConexao}>{t.sair}</button>
         </div>
       )}
 
@@ -424,15 +431,25 @@ export default function App(): React.JSX.Element {
           </>
         )}
 
-        {mapa && mapa.ilhas.length > 0 ? (
+        {!mapa ? (
+          // Ainda lendo o disco: palco em branco. Antes caía no ramo de baixo e
+          // todo início de sessão piscava "o mapa está vazio" antes de o mapa chegar.
+          <div className="palco" />
+        ) : mapa.ilhas.length > 0 ? (
           <Palco
             mapa={mapa}
             selecionado={selecionado}
             destacados={destacados}
             conectandoDe={conectandoDe}
-            onSelecionar={(id) => {
-              if (modoConexao && id) return void clicarEmModoConexao(id)
+            onClicar={(id) => {
+              if (modoConexao) return void clicarEmModoConexao(id)
               selecionar(id)
+            }}
+            // Só o clique liga pontas. O botão direito e o soltar da lista também
+            // "selecionam", e no modo conexão isso escolhia uma ponta — ou criava
+            // uma ponte — só por abrir o menu de uma ilha.
+            onSelecionar={(id) => {
+              if (id === null || !modoConexao) selecionar(id)
             }}
             onAbrir={(id) => void abrirNoExplorer(id)}
             onFixar={(id, pos) => void fixar(id, pos)}
@@ -470,7 +487,7 @@ export default function App(): React.JSX.Element {
         <ContextMenu
           x={menu.x}
           y={menu.y}
-          titulo={menu.id ?? 'Mapa'}
+          titulo={menu.id ?? t.menuDoMapa}
           itens={itensMenu}
           onFechar={() => setMenu(null)}
         />

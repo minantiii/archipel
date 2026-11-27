@@ -1,4 +1,5 @@
 import { watch, type FSWatcher } from 'chokidar'
+import { join } from 'node:path'
 import { caminhoMeta, caminhoPastas } from './estrutura'
 
 /**
@@ -23,12 +24,18 @@ export async function pararDeObservar(): Promise<void> {
 export async function observar(raiz: string, aoMudar: () => void): Promise<void> {
   await pararDeObservar()
 
-  const observador = watch([raiz, caminhoPastas(raiz)], {
+  // O `config.yaml` entra pelo nome: é onde se edita à mão a cor das tags e a
+  // ordem da lista, e sem observá-lo essa edição só aparecia no próximo recarregar.
+  const meta = caminhoMeta(raiz)
+  const config = join(meta, 'config.yaml')
+
+  const observador = watch([raiz, caminhoPastas(raiz), config], {
     // Só o primeiro nível importa: pastas de projeto na raiz e `.md` de metadados.
     // Descer dentro dos projetos observaria node_modules inteiro sem nenhum ganho.
     depth: 0,
     ignoreInitial: true,
-    ignored: (caminho) => caminho.startsWith(caminhoMeta(raiz)) && !caminho.endsWith('.md'),
+    ignored: (caminho) =>
+      caminho.startsWith(meta) && !caminho.endsWith('.md') && caminho !== config,
     awaitWriteFinish: { stabilityThreshold: 250, pollInterval: 60 }
   })
 

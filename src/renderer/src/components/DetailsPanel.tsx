@@ -221,7 +221,7 @@ export default function DetailsPanel({
         <h3>{t.pontes(vizinhos.length)}</h3>
         {vizinhos.length === 0 && (
           <p className="vazio">
-            Nenhuma. Ligue o <strong>modo conexão</strong> e clique de uma pasta a outra.
+            {t.semPontes} <strong>{t.semPontesModo}</strong> {t.semPontesFim}
           </p>
         )}
         <ul className="lista-conexoes">
@@ -253,7 +253,7 @@ export default function DetailsPanel({
           onBlur={() => diario !== paraEditor(ilha.diario) && onSalvar({ diario })}
         />
         <p className="dica-diario">
-          Salva ao sair do campo. As <code>[[ligações]]</code> daqui viram as pontes do mapa.
+          {t.diarioDica} <code>[[{t.diarioDicaLigacoes}]]</code> {t.diarioDicaFim}
         </p>
       </section>
     </aside>

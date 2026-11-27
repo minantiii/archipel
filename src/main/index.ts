@@ -57,8 +57,12 @@ function criarJanela(): BrowserWindow {
     }
   })
 
-  // Evita o flash branco: só mostra quando o renderer já pintou.
-  janela.once('ready-to-show', () => janela.show())
+  // Evita o flash branco: só mostra quando o renderer já pintou. Abre
+  // maximizada porque o mapa é o app inteiro, e numa janela pequena ele aperta.
+  janela.once('ready-to-show', () => {
+    janela.maximize()
+    janela.show()
+  })
 
   // Erro no renderer aparece no terminal de quem rodou `npm run dev`, em vez de
   // ficar escondido atrás do devtools.
