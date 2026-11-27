@@ -11,6 +11,10 @@ files:
 # pasta inteira vai solta ao lado dele.
 asarUnpack:
   - node_modules/node-pty/**
+# O `node-pty` já vem compilado (N-API, vale para qualquer versão do Electron).
+# Sem isto o electron-builder tenta recompilar com node-gyp e falha numa máquina
+# sem Visual Studio.
+npmRebuild: false
 # De onde o app procura atualização. O repositório é público, então o updater
 # baixa sem token nenhum embutido no instalador.
 publish:
