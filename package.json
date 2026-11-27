@@ -1,6 +1,6 @@
 {
   "name": "archipel",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Um mapa navegável para pastas de projeto: cada pasta vira uma ilha, com tags e pontes entre elas",
   "main": "./out/main/index.js",
   "author": "Gabriel Minantti",
@@ -19,6 +19,7 @@
     "chokidar": "^5.0.0",
     "electron-updater": "^6.8.9",
     "gray-matter": "^4.0.3",
+    "node-pty": "^1.1.0",
     "yaml": "^2.9.0"
   },
   "devDependencies": {
@@ -27,6 +28,8 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.0.0",
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/xterm": "^6.0.0",
     "d3-force": "^3.0.0",
     "electron": "^43.3.0",
     "electron-builder": "^26.15.3",
