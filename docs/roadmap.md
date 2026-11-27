@@ -54,8 +54,8 @@ Respondê-las define a ordem das fases.
 
 - [ ] Testar no app instalado o que não foi testado automaticamente: arrastar
       para fixar, Alt+clique, duplo clique, menu do botão direito, soltar da lista
-- [ ] Commit das mudanças (sem coautoria; PR só com título)
-- [ ] Publicar a versão 0.1.3 no GitHub, para a atualização automática levar o mapa novo
+- [x] Commit das mudanças (sem coautoria; PR só com título)
+- [x] Publicar a versão 0.1.3 no GitHub, para a atualização automática levar o mapa novo
 - [x] Copiar as memórias do Claude presas nos caminhos antigos `Desktop\...`
       para os caminhos novos em `Documents\mapa-trabalho\...` (11 pastas, 87
       arquivos; caminhos internos atualizados; originais mantidos)
